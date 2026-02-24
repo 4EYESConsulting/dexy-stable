@@ -42,31 +42,36 @@ two functional components: a reference market, in the form of a liquidity pool;
 and an algorithmic central bank, responsible for new stablecoin issuance and maintaining the stablecoin peg in the reference market.
 \end{abstract}
 
-
 \section{Introduction}
 \label{sec:introduction}
-Algorithmic stablecoins are a natural extension of cryptocurrencies, trying to 
-solve problems with volatility of their prices by pegging the stablecoin price to an
-asset whose price is considered to be more or less stable over long periods of time (e.g. gold).
+Due to the usual volatility inherent with cryptocurrency prices, algorithmic stablecoins naturally arose as their extension. The volatility is resolved by pegging the stablecoin to an
+asset whose price is considered to be stable over long periods of time, e.g. gold. 
 
-Having an asset with a stable value can be useful in many scenarios, for example:
+Having an asset with a stable value can be useful in many scenarios:
 \begin{itemize}
-\item Securing fundraising, a project can be sure that funds collected during fundraising will have stable value in the mid- and long-term.
-\item Doing business with predictable results, for example, a shop can be sure that funds collected from sales will be about the same value when the shop is ordering goods from warehouses~(otherwise, the shop may go bankrupt if its margin is not that big to cover exchange rate fluctuations). 
-\item Shorting, when cryptocurrency prices are high, it is desirable for investors to rebalance their portfolio by increasing exposure to fiat currencies (or real-world commodities). However, as fiat currencies and centralized exchanges impose significant risks, it would be better to buy fiat and commodity substitues in form of stablecoins on decentralized exchanges.
-\item Lending and other decentralized finance applications, stability of collateral value is critical for many applications.
+\item Securing fundraising: a project can be sure that funds collected during fundraising will have stable value in the mid-to-long term.
+\item Doing business with predictable results: a shop can be sure that funds collected from sales will have roughly the same value when the shop is ordering goods from warehouses, otherwise, the shop may go bankrupt if its margin is to low to cover exchange rate fluctuations. 
+\item Shorting: when cryptocurrency prices are high, it is desirable for investors to rebalance their portfolio by increasing exposure to fiat currencies or real-world commodities. However, as fiat currencies and centralized exchanges impose significant risks, it would be better to buy fiat and commodity substitues in the form of stablecoins on decentralized exchanges.
+\item Lending and other decentralized finance applications: stability of collateral value is critical for many applications built on top of these services.
 \end{itemize}
 
-Algorithmic stablecoins are different from centralized stablecoins, such as USDT and USDC, for which there is a trusted party that holds the peg. In case of an algorithmic stablecoin, the 
-pegging is done via rebasement of total supply~(e.g. \cite{Ampleforth}), or via imitating a trusted party which holds reserves and doing market interventions when it is needed for getting exchange rate back to the peg. Imititating the trusted party is usually done by allowing anyone on the blockchain to create over-collateralized financial instruments, such as collateralized debt positions~(e.g. \cite{DAI}), zero-coupon bonds~(as in the Yield protocol), reserve asset~(e.g. \cite{DjedEprint,DjedICBC2023,Gluon}), or by issuing stabilizing financial instruments in case of depeg~(e.g. \cite{Neutrino}).
+Centralized stablecoins, such as USDT and USDC, use a trusted party to ensure that the peg is maintained. For algorithmic stablecoins, the 
+peg can be maintained in different ways depending on the implementation, e.g. rebasement of the total supply \cite{Ampleforth}, 
+or via imitating a trusted party that holds reserves and then does market interventions for rebalancing the peg. 
+Imititating the trusted party is usually done by allowing anyone on the blockchain to create over-collateralized financial instruments, 
+such as collateralized debt positions \cite{DAI}, zero-coupon bonds (as was done in the failed Yield protocol), reserve assets \cite{DjedEprint,DjedICBC2023,Gluon}, 
+or by issuing stabilizing financial instruments in case of a depeg \cite{Neutrino}.
 
-In this work, we present \dx{}, a stablecoin protocol where an algorithmic central bank performs interventions in case of a depeg, presented explicitly as a contract with a few predefined rules. The bank tries to stabilize the stablecoin value in the secondary market, using a liquidity pool as a reference market, by providing stablecoin liquidity, when the stablecoin price is over the peg, or injecting basecoins from its reserves, when the stablecoin price is under the peg. In extreme cases, when bank reserves are depleted and the stablecoin price is still under the peg, its value is restored by extracting stablecoins from the liquidity pool~(to inject back when the stablecoin price goes above the peg again). In some aspects, \dx{} could resemble Fei or Gyroscope \cite{Gyroscope}. 
+In this work, we present \dx{}, a stablecoin protocol where an algorithmic central bank performs interventions when there is a depeg.
+The bank stabilizes the stablecoin value in the reference market, a liquidity pool, 
+by injecting stablecoins when the stablecoin price is above the peg, or injecting basecoins from its reserves when the stablecoin price is below the peg. 
+In extreme cases, when bank reserves are depleted and the stablecoin price is still below the peg, the liquidity pool price is restored by extracting stablecoins, 
+which will be injected back when the stablecoin price goes above the peg again. In some aspects, \dx{} could resemble Fei or Gyroscope \cite{Gyroscope}. 
 
-The rest of the paper is organized as follows.  In Section \ref{sec:design-general}, the \dx{} design in general is explained and
-notation used in other sections is introduced. Section \ref{sec:worst-case} defines the worst-case scenario for bank reserves~(and so, for stablecoin stability). Then the \dx{} bank rules are detailed in Section~\ref{sec:detailed-rules}. Stability of the rules are
-discussed in Section~\ref{sec:stability}. The trust assumptions that the \dx{} protocol is based on are stated in Section~\ref{sec:kya}.
-Section~\ref{sec:dexygold} describes concrete \dx{} implementation, the gold-pegged DexyGold stablecoin and its
-tokenomics.
+The rest of the paper is organized as follows.  In Section \ref{sec:design}, the \dx{} design in general is explained, where important trust assumptions are stated and
+notation used in other sections is introduced. Section \ref{sec:worst-case} defines the worst-case scenario for the bank reserves, which implies for the stablecoin stability as well. 
+In Section \ref{sec:rules}, the bank and liquidity pool rules are defined, where their stability is discussed in Section \ref{sec:stability}. 
+Section \ref{sec:implementations} describes \dx{} implementations: the gold-pegged DexyGold stablecoin and the USD-pegged USE stablecoin.
 
 \section{\dx Design}
 \label{sec:design}
