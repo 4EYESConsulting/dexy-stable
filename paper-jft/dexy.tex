@@ -76,11 +76,50 @@ Section \ref{sec:implementations} describes \dx{} implementations: the gold-pegg
 \section{\dx Design}
 \label{sec:design}
 
-Unlike popular algorithmic stablecoins based on two tokens - in addition to basecoins - such as Djed and Gluon, \dx{} is based on one token - the stablecoin - but with two protocols. The first protocol is a reference market implemented on-chain, such as an automated market maker (e.g. \cite{xu2021sok}), where trading of \dx{} stablecoins and basecoins  (e.g. \bc{}) occurs. The second protocol handles situations when the reference market price deviates too much from the target price of the pegged asset, as reported by a trusted oracle, and is implemented as an algorithmic central bank that is doing interventions in order to readjust the market price so it converges back to the target price of the oracle. The central bank can also mint new \dx{} tokens by selling them for basecoins. The bank is using reserves in basecoins it is buying - i.e. deposited from users purchasing stablecoins directly from the bank - for the interventions. 
+The \dx protocol functions via an algorithmic central bank that holds reserves in basecoins and mints stablecoins. 
+A corresponding liquidity pool exists where stablecoins and basecoins can be traded. The peg price used by the bank is provided by an oracle, which is assumed to be trusted and reliable.
+Users can interact with both the bank and the liqudity pool, but certain rules and restrictions are applied to control the price stability.
 
-As a simple solution for the {\em reference market}, a constant-product Automated Market Maker (CP-AMM) liquidity pool is used, similar to ErgoDex \cite{ErgoDex} and UniSwap \cite{Uniswap}. The pool has basecoins on one side and \dx{} on another. For CP-AMM pool, multiplication of basecoins and \dx{} amounts before and after a trade should be preserved, so $e * u = e' * u'$, where $e$ and $u$ are amounts of basecoins and \dx{} in the pool before the trade, and $e'$ and $u'$ are amounts of basecoins and \dx{} in the pool after the trade, respectively. As for any CP-AMM pool, it is possible to put liquidity into the pool, and remove liquidity from it, however, with certain limitations that will be explained.
+%TODO: Insert fig from workshop presentation.
 
-The bank has two basic operations. It can mint new \stc{} tokens per request, using the trusted oracle's price, by accepting basecoins in its reserves. It also can intervene into markets by providing basecoins from the reserves when needed - when the price in the pool $\frac{e}{u}$ is significantly different from the price on external markets $p$ reported by the oracle.
+\subsection{The Liquidity Pool}
+\label{subsec:pool}
+
+The reference market is implemented as an automated market maker (e.g. \cite{xu2021sok}). For simplicity a modified constant-product automated market maker (CP-AMM) is used, 
+similar to ErgoDex \cite{ErgoDex} and UniSwap \cite{Uniswap}. This means that the liqudity pools holds a pair of basecoins and stablecoins such that the product of their amounts
+remains invariant before and after a trade. Users who functions as liquidity providers can provide a pair of basecoins and stablecoins to obtain corresponding LP tokens.
+These LP tokens can later be deposited to hopefully obtain the initial liquidity pair deposit along with accumulated fees from trading. A fee is charged to liqudity providers 
+to prevent excessive liquidity withdrawals.
+
+%TODO: Insert fig from workshop presentation.
+
+\subsection{The Algorithmic Central Bank}
+\label{subscec:bank}
+
+By depositing basecoins into the bank, users can mint stablecoins. The price provided by the bank will always equal the oracle price. A fee is charged so the bank reserves can increase faster.
+Under certain conditions, the bank can intervene into the liquidity pool to control its price relative to the oracle price.
+
+%TODO: Insert fig from workshop presentation.
+
+\subsection{Actions and Dynamics}
+\label{subsec:actions}
+
+%TODO: List protocol actions and who triggers them.
+
+\subsection{Trust Assumptions}
+\label{subsec:kya}
+
+In general, for any DeFi protocol involving user funds, it is important for trust assumptions to be explicitly stated so that users can make informed decisions to the best of their ability.
+The \dx protocol has two:
+
+\begin{itemize}
+  \item{Oracle:} The protocol assumes the target price oracle is reliable. This trust assumption is unavoidable; however, it can be relaxed by using a federation of oracles that produces an average price 
+  to be delivered to the central bank, instead of relying on a single entity. In any case, it is important that oracles are rewarded from protocol usage, 
+  otherwise, they will be incentivized to adversarially attack the protocol, see Section \ref{subsec:oracle} for details.
+
+  \item{No governance:} unlike most stablecoin protocols, we do not consider governance, as it can be used to adversarially attack the protocol. 
+  We suppose that real-world instantiations that do have it should clearly state their governance-related trust assumptions.
+\end{itemize}
 
 \subsection{Notation}
 \label{subsec:notation}
@@ -186,23 +225,15 @@ With second stabilization mechanism~(burning or extraction) in place, the price 
 
 Please note that the liquidity pool is disincentivizing massive bank runs due to its constant-product nature. Actually, massive bank runs are simpler for the bank to resolve, in comparison to the slow drain of the worst-case scenario.
 
-\section{Trust Assumptions}
-\label{sec:kya}
-
-It is important to explicitly state the assumptions that the protocol is based on, so a user can choose whether to trust it or not.
-
-\begin{itemize}
-  \item{Oracle:} the biggest trust issue in the protocol is the oracle delivering the target price. This trust issue is unavoidable, however, it can be relaxed by using a federation of oracles that produces an average price (after noise filtering) to be delivered to the Dexy central bank, instead of relying on a single entity.
-  It is important to reward oracles from protocol activities~(such as minting), otherwise, they will be incentivized to attack the protocol. See Section~\ref{subsec:oracle-incentivization} for details.
-
-  \item{No governance:} unlike most stablecoin protocols, we do not consider governance, as it is usually another trust issue. Real world instantiations can consider governance, we suppose that such instantiations should clearly inform about governance-related trust assumptions.
-\end{itemize}
-
 \section{Implementations}
 \label{sec:implementations}
 
 In this section we consider two concrete implementations of the \dx protocol that were made for the Ergo blockchain, 
-a gold-pegged stablecoin named \dxg and a USD-pegged stablecoin named \dxusd.
+a gold-pegged stablecoin named \dxg and a USD-pegged stablecoin named \dxusd. The oracle used in both stablecoins is
+implemented using the same underlying oracle protocol.
+
+\subsection{Oracle Pools}
+\label{subscec:oracle}
 
 \subsection{\dxg}
 \label{subsec:dexygold}
