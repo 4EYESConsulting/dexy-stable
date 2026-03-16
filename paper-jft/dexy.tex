@@ -36,16 +36,15 @@ the audit of the ErgoScript contracts.
 \maketitle
 
 \begin{abstract}
-We consider a new stablecoin protocol design called Dexy. 
-The protocol consists of only two assets: basecoins and stablecoins. The peg is maintained using 
-two functional components: a reference market, in the form of a liquidity pool; 
-and an algorithmic central bank, responsible for new stablecoin issuance and maintaining the stablecoin peg in the reference market.
+We consider a new algorithmic stablecoin called Dexy, consisting of two assets: the base cryptocurrency, called the basecoin, and the stablecoin.
+The protocol consits of three components: a central bank, a secondary market in the form of a customized CP-AMM liquidity pool, and a trusted oracle. 
+The price of the stablecoin in the liquidity pool is stabilized, relative to the oracle price, via central bank interventions. 
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
-Due to the usual volatility inherent with cryptocurrency prices, algorithmic stablecoins naturally arose as their extension. The volatility is resolved by pegging the stablecoin to an
-asset whose price is considered to be stable over long periods of time, e.g. gold. 
+Due to the inherent volatility of cryptocurrency prices, algorithmic stablecoins naturally arose as their extension. The volatility is resolved 
+by pegging the stablecoin to an asset whose price is considered to be stable over long periods of time, e.g. gold. 
 
 Having an asset with a stable value can be useful in many scenarios:
 \begin{itemize}
@@ -63,10 +62,10 @@ such as collateralized debt positions \cite{DAI}, zero-coupon bonds (as was done
 or by issuing stabilizing financial instruments in case of a depeg \cite{Neutrino}.
 
 In this work, we present \dx{}, a stablecoin protocol where an algorithmic central bank performs interventions when there is a depeg.
-The bank stabilizes the stablecoin value in the reference market, a liquidity pool, 
-by injecting stablecoins when the stablecoin price is above the peg, or injecting basecoins from its reserves when the stablecoin price is below the peg. 
+The bank stabilizes the stablecoin value in the reference market, a liquidity pool, injecting basecoins from its reserves when the stablecoin price is below the peg. 
 In extreme cases, when bank reserves are depleted and the stablecoin price is still below the peg, the liquidity pool price is restored by extracting stablecoins, 
-which will be injected back when the stablecoin price goes above the peg again. In some aspects, \dx{} could resemble Fei or Gyroscope \cite{Gyroscope}. 
+which will be injected back again at a later time when the stablecoin price is above the peg by a certain threshold. 
+In some aspects, \dx{} could resemble Fei or Gyroscope \cite{Gyroscope}. 
 
 The rest of the paper is organized as follows.  In Section \ref{sec:design}, the \dx{} design in general is explained, where important trust assumptions are stated and
 notation used in other sections is introduced. Section \ref{sec:worst-case} defines the worst-case scenario for the bank reserves, which implies for the stablecoin stability as well. 
@@ -77,32 +76,34 @@ Section \ref{sec:implementations} describes \dx{} implementations: the gold-pegg
 \label{sec:design}
 
 The \dx protocol functions via an algorithmic central bank that holds reserves in basecoins and mints stablecoins. 
-A corresponding liquidity pool exists where stablecoins and basecoins can be traded. The peg price used by the bank is provided by an oracle, which is assumed to be trusted and reliable.
+A corresponding liquidity pool exists where stablecoins and basecoins can be traded. 
+The peg price used by the bank is provided by an oracle, which is assumed to be trusted and reliable. 
 Users can interact with both the bank and the liqudity pool, but certain rules and restrictions are applied to control the price stability.
+Central bank interventions are determined by the ratio of the liquidity pool price to the oracle price, $r$. 
 
 %TODO: Insert fig from workshop presentation.
 
 \subsection{The Liquidity Pool}
 \label{subsec:pool}
 
-The reference market is implemented as an automated market maker (e.g. \cite{xu2021sok}). For simplicity a modified constant-product automated market maker (CP-AMM) is used, 
-similar to ErgoDex \cite{ErgoDex} and UniSwap \cite{Uniswap}. This means that the liqudity pools holds a pair of basecoins and stablecoins such that the product of their amounts
-remains invariant before and after a trade. Users who functions as liquidity providers can provide a pair of basecoins and stablecoins to obtain corresponding LP tokens.
-These LP tokens can later be deposited to hopefully obtain the initial liquidity pair deposit along with accumulated fees from trading. A fee is charged to liqudity providers 
-to prevent excessive liquidity withdrawals.
+The reference market is implemented as an automated market maker (e.g. \cite{xu2021sok}). 
+For simplicity, a modified constant-product automated market maker (CP-AMM) is used, similar to ErgoDex \cite{ErgoDex} and UniSwap \cite{Uniswap}. 
+This means that the liqudity pools holds a pair of basecoins and stablecoins such that the product of their amounts remains invariant before and after a trade. 
+Users who function as liquidity providers can provide a pair of basecoins and stablecoins to obtain a corresponding amount of LP tokens.
+These LP tokens can later be deposited to obtain the initial liquidity pair deposit plus accumulated fees from trading. 
+A fee is charged to liqudity providers to prevent excessive liquidity withdrawals.
 
 %TODO: Insert fig from workshop presentation.
 
 \subsection{The Algorithmic Central Bank}
 \label{subscec:bank}
 
-By depositing basecoins into the bank, users can mint stablecoins. The price provided by the bank will always equal the oracle price. A fee is charged so the bank reserves can increase faster.
+By depositing basecoins into the bank, users can mint stablecoins. 
+The price provided by the bank will always equal the oracle price. 
+A fee is charged so the bank reserves can increase faster.
 Under certain conditions, the bank can intervene into the liquidity pool to control its price relative to the oracle price.
 
 %TODO: Insert fig from workshop presentation.
-
-\subsection{Actions and Dynamics}
-\label{subsec:actions}
 
 %TODO: List protocol actions and who triggers them.
 
@@ -117,25 +118,45 @@ The \dx protocol has two:
   to be delivered to the central bank, instead of relying on a single entity. In any case, it is important that oracles are rewarded from protocol usage, 
   otherwise, they will be incentivized to adversarially attack the protocol, see Section \ref{subsec:oracle} for details.
 
-  \item{No governance:} unlike most stablecoin protocols, we do not consider governance, as it can be used to adversarially attack the protocol. 
+  \item{No governance:} Unlike most stablecoin protocols, we do not consider governance, as it can be used to adversarially attack the protocol. 
   We suppose that real-world instantiations that do have it should clearly state their governance-related trust assumptions.
 \end{itemize}
 
-\subsection{Notation}
-\label{subsec:notation}
+\subsection{Actions and Dynamics}
+\label{subsec:actions}
+
+The following table shows the different actions in the protocol, the $r$ range when the action happens, and the entity who performs the action.
+\begin{table}[h]
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Action} & \textbf{Range}                                  & \textbf{Entity} \\ \hline
+FreeMint        & $1 - \epsilon_{\textrm{FREE}} \le r \le 1 + \epsilon_{\textrm{FREE}}$ & User   \\ \hline
+ArbMint         & $r > 1 + \epsilon_{\textrm{FREE}}$                         & User   \\ \hline
+InjectBasecoins & $r < 1 - \epsilon_{\textrm{FREE}}$                         & Bank   \\ \hline
+ExtractDexy     & $r \le 1 - \epsilon_{\textrm{ED}} < 1 - \epsilon_{\textrm{FREE}}$     & Bank   \\ \hline
+ReleaseDexy     & $1 + \epsilon_{\textrm{RD}} < r <  1 + \epsilon_{\textrm{FREE}}$      & Bank  \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Protocol Specification}
+\label{subsec:protocol}
 
 We now introduce notation that will be used in further sections:
+% \begin{itemize}
+%   \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
+%   \item{} $p$ - basecoin price reported by the oracle at the moment (e.g. 20 USD per ERG, note, however, that the price provided by the oracle will usually be in units of $\frac{\mathrm{basecoin}}{\mathrm{stablecoin}}$, representing the price of the stablecoin in units of basecoins).
+%   \item{} $s$ - price when the bank should intervene in case of a sudden basecoin price crash. For example, we can assume that $s = \frac{p}{4}$ (so if p is 20 USD per ERG, then $s$ is 5 USD per ERG, means the bank needs to have enough reserves to save the markets when the price is suddenly crashing from 20 to 5 USD per ERG).
+%   \item{} $R$ - ratio between $p$ and $s$, $R = \frac{p}{s}$.
+%   \item{} $r$ - ratio between $p$, and price in the pool, which is $\frac{u}{e}$, thus $r = \frac{p}{\frac{u}{e}} = \frac{p*e}{u}$.
+%   \item{} $e$ - amount of basecoin in the liquidity pool. 
+%   \item{} $u$ - amount of \stc{} in the liquidity pool.
+%   \item{} $O$ - amount of \stc{} in circulation that is outside the liquidity pool. The amount $O$ is not known for the \dx{} protocol, but the bank can easily store how many \stc{} tokens were minted and then get $O$ by deducting $u$ from it.
+%   \item{} $E$ - amount of basecoins in the bank. 
+% \end{itemize}  
+
 \begin{itemize}
-  \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
-  \item{} $p$ - basecoin price reported by the oracle at the moment (e.g. 20 USD per ERG, note, however, that the price provided by the oracle will usually be in units of $\frac{\mathrm{basecoin}}{\mathrm{stablecoin}}$, representing the price of the stablecoin in units of basecoins).
-  \item{} $s$ - price when the bank should intervene in case of a sudden basecoin price crash. For example, we can assume that $s = \frac{p}{4}$ (so if p is 20 USD per ERG, then $s$ is 5 USD per ERG, means the bank needs to have enough reserves to save the markets when the price is suddenly crashing from 20 to 5 USD per ERG).
-  \item{} $R$ - ratio between $p$ and $s$, $R = \frac{p}{s}$.
-  \item{} $r$ - ratio between $p$, and price in the pool, which is $\frac{u}{e}$, thus $r = \frac{p}{\frac{u}{e}} = \frac{p*e}{u}$.
-  \item{} $e$ - amount of basecoin in the liquidity pool. 
-  \item{} $u$ - amount of \stc{} in the liquidity pool.
-  \item{} $O$ - amount of \stc{} in circulation that is outside the liquidity pool. The amount $O$ is not known for the \dx{} protocol, but the bank can easily store how many \stc{} tokens were minted and then get $O$ by deducting $u$ from it.
-  \item{} $E$ - amount of basecoins in the bank. 
-\end{itemize}  
+  \item $s_{\textrm{BANK}} = \left(R, S_{D} \right)$
+\end{itemize}
 
 \section{Worst Case Scenario and Bank Reserves}
 \label{sec:worst-case}
