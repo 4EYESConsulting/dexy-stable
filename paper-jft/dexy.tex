@@ -1,15 +1,21 @@
 \documentclass{ifcolog}
 
 \usepackage{makeidx}
+\usepackage{amsthm}
 \usepackage{amssymb}
 
 \newcommand{\bc}{ERG}
 \newcommand{\stc}{stablecoin}
-\newcommand{\Pdt}{P_{D}^{*}}
+\newcommand{\Pdt}{P_{\mathrm{D}}^{*}}
+\newcommand{\Plp}{P_{\mathrm{D}}^{\mathrm{LP}}}
+\newcommand{\slp}{s_{\mathrm{LP}}}
 
 \newcommand{\dx}{Dexy}
 \newcommand{\dxg}{DexyGold}
 \newcommand{\dxusd}{USE}
+
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
 
 \title{Dexy:\protect \\ A Simple Stablecoin Design Based on an Algorithmic Central Bank}
 
@@ -141,8 +147,8 @@ ReleaseDexy                           & $1 + \epsilon_{\textrm{RD}} < r <  1 + \
 \end{tabular}
 \end{table}
 
-\subsection{Protocol Specification}
-\label{subsec:protocol}
+\section{Protocol Specification}
+\label{sec:protocol}
 We now describe the \dx{} protocol specification, which includes immutable paramters and state variables.
 % \begin{itemize}
 %   \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
@@ -229,7 +235,7 @@ $$s_{\textrm{O}} = \left(\Pdt, F \right)$$
   \item $F \in \mathbb{R}_{\ge 0}$ is the accumulated fees of the oracle.
 \end{itemize}
 
-For the sake of clarity, we now defines separate state variables for the different bank actions, 
+For the sake of clarity, we now define separate state variables for the different bank actions, 
 but these can also be considered as part of the bank state.
 
 The FreeMint action has the following state:
@@ -244,8 +250,8 @@ The ArbMint action has the following state:
 $$s_{\textrm{ARB}} = \left(t, d, \tau\right)$$
 
 \begin{itemize}
-  \item $t \in \mathbb{R}_{>0}$ is the time when the arb-mint period ends.
-  \item $d \in \mathbb{R}_{\ge 0}$ is the remaining amount of dexy stablecoins that can be minted during the arb-mint period.
+  \item $t \in \mathbb{R}_{>0}$ is the time when the arbitrage-mint period ends.
+  \item $d \in \mathbb{R}_{\ge 0}$ is the remaining amount of dexy stablecoins that can be minted during the arbitrage-mint period.
   \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{FREE}}$. 
 \end{itemize}
 
@@ -268,6 +274,48 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \item $\tau_{\textrm{RD}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{RD}}$.  
 \end{itemize}
 
+\subsection{Auxiliary Definitions}
+
+\begin{definition}[The Reference Price]
+  The liquidity pool price, or the reference market price, is defined as the following, 
+  and like the oracle price, has units of $\frac{\textrm{BASECOIN}}{\textrm{PEG ASSET}}$:
+  \begin{equation}
+    \Plp(\slp) = \frac{\slp.B}{\slp.D}
+  \end{equation}
+  
+\end{definition}
+
+\begin{definition}[The Reference Reserve Ratio]
+    We call the ratio of the liquidity pool price to the oracle price the reference reserve ratio,
+    for simplicity, because the formula resemble the typical formula defining a reserve ratio,
+    namely the ratio of a reserve to its liabilities:
+\begin{equation}
+  \label{eq:r}
+  r(\Pdt, \slp) = \frac{\Plp(\slp)}{\Pdt} = \frac{\slp.B}{\Pdt \slp.D}
+\end{equation}
+\end{definition}
+
+\subsection{State Update Procedures}
+
+\subsubsection{UpdateArbitrageMint}
+
+\subsubsection{UpdateInjectBasecoins}
+
+\subsubsection{UpdateExtractDexy}
+
+\subsubsection{UpdateReleaseDexy}
+
+\subsection{Protocol Operations}
+
+\subsubsection{FreeMint}
+
+\subsubsection{ArbitrageMint}
+
+\subsubsection{InjectBasecoins}
+
+\subsubsection{ExtractDexy}
+
+\subsubsection{ReleaseDexy}
 
 \section{Worst Case Scenario and Bank Reserves}
 \label{sec:worst-case}
