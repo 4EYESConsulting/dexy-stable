@@ -184,7 +184,7 @@ $$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB
   \item $0 < \epsilon_{\textrm{IB}} < \epsilon_{\textrm{FREE}}$ defines the percentage where the inject-basecoins action will restore the price.
   \item $\epsilon_{\textrm{FREE}} < \epsilon_{\textrm{ED}}^{0} < 1$ defines the percentage where the extract-dexy action will happen.
   \item $0 < \epsilon_{\textrm{ED}}^{1} < \epsilon_{\textrm{ED}}^{0}$ defines the percentage where the extract-dexy action will restore the price.
-  \item $\epsilon_{\textrm{RD}} < \epsilon_{\textrm{FEE}}$ defines the percentage where the release-dexy action will happen.
+  \item $\epsilon_{\textrm{RD}} < \epsilon_{\textrm{FREE}}$ defines the percentage where the release-dexy action will happen.
   \item $T_{\textrm{FREE}} \in \mathbb{R}_{>0}$ is the free-mint period.
   \item $T_{\textrm{ARB}} \in \mathbb{R}_{>0}$ is the arbitrage-mint period.
   \item $T_{\textrm{IB}} \in \mathbb{R}_{>0}$ is the inject-basecoins period.
@@ -192,7 +192,7 @@ $$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB
   \item $\tau_{\textrm{ED}} >> \tau_{\textrm{IB}}$ is the extract-dexy bank delay, which must be much larger than the inject-basecoins bank delay, since extraction is an action of last-resort.
   \item $\tau_{\textrm{RD}} \in \mathbb{R}_{>0}$ is the release-dexy bank delay.
   \item $\tau_{\textrm{TX}} \in \mathbb{R}_{>0}$ is the allowed transaction propogation delay.
-  \item $\alpha_{\textrm{FREE}} \in (0,1)$ is the percentage of the dexy liquidity in the liquidity pool that determines the max amount of dexy that can be minted from the bank during the free-mint period.
+  \item $\alpha_{\textrm{FREE}} \in (0,1)$ is the percentage of dexy liquidity, in the liquidity pool, that determines the max amount of dexy that can be minted from the bank during the free-mint period.
   \item $\alpha_{\textrm{IB}} \in (0,1)$ is the percentage of the bank's basecoin reserve that determines the max amount of basecoins to inject into the liquidity pool during an inject-basecoin action.
 \end{itemize}
 
