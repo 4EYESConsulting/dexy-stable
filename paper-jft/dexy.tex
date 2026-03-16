@@ -1,10 +1,12 @@
-
 \documentclass{ifcolog}
 
 \usepackage{makeidx}
+\usepackage{amssymb}
 
 \newcommand{\bc}{ERG}
 \newcommand{\stc}{stablecoin}
+\newcommand{\Pdt}{P_{D}^{*}}
+
 \newcommand{\dx}{Dexy}
 \newcommand{\dxg}{DexyGold}
 \newcommand{\dxusd}{USE}
@@ -125,23 +127,23 @@ The \dx protocol has two:
 \subsection{Actions and Dynamics}
 \label{subsec:actions}
 
-The following table shows the different actions in the protocol, the $r$ range when the action happens, and the entity who performs the action.
+The following table shows the different actions in the protocol, the $r$ range when the action happens, and the restored $r'$ range after the action happens.
+
 \begin{table}[h]
 \begin{tabular}{|l|l|l|}
 \hline
-\textbf{Action} & \textbf{Range}                                  & \textbf{Entity} \\ \hline
-FreeMint        & $1 - \epsilon_{\textrm{FREE}} \le r \le 1 + \epsilon_{\textrm{FREE}}$ & User   \\ \hline
-ArbMint         & $r > 1 + \epsilon_{\textrm{FREE}}$                         & User   \\ \hline
-InjectBasecoins & $r < 1 - \epsilon_{\textrm{FREE}}$                         & Bank   \\ \hline
-ExtractDexy     & $r \le 1 - \epsilon_{\textrm{ED}} < 1 - \epsilon_{\textrm{FREE}}$     & Bank   \\ \hline
-ReleaseDexy     & $1 + \epsilon_{\textrm{RD}} < r <  1 + \epsilon_{\textrm{FREE}}$      & Bank  \\ \hline
+\multicolumn{1}{|c|}{\textbf{Action}} & \multicolumn{1}{c|}{\textbf{Range}}                                   & \multicolumn{1}{c|}{\textbf{Restore Range}}                                                         \\ \hline
+FreeMint                              & $1- \epsilon_{\textrm{FREE}} \le r \le 1+ \epsilon_{\textrm{FREE}}$   & \multicolumn{1}{c|}{-}                                                                              \\ \hline
+ArbMint                               & $r > 1 + \epsilon_{\textrm{FREE}}$                                    & \multicolumn{1}{c|}{-}                                                                              \\ \hline
+InjectBasecoins                       & $r < 1 - \epsilon_{\textrm{FREE}}$                                    & $1 - \epsilon_{\textrm{FREE}} \le r' \le 1-\epsilon_{\textrm{IB}}$                                  \\ \hline
+ExtractDexy                           & $r \le 1 - \epsilon_{\textrm{ED}}^{0} < 1 - \epsilon_{\textrm{FREE}}$ & $1 - \epsilon_{\textrm{ED}}^{0} + \epsilon_{\textrm{ED}}^{1} \le r' \le 1-\epsilon_{\textrm{FREE}}$ \\ \hline
+ReleaseDexy                           & $1 + \epsilon_{\textrm{RD}} < r <  1 + \epsilon_{\textrm{FREE}}$      & $r' \ge 1 + \epsilon_{\textrm{RD}}$                                                                  \\ \hline
 \end{tabular}
 \end{table}
 
 \subsection{Protocol Specification}
 \label{subsec:protocol}
-
-We now introduce notation that will be used in further sections:
+We now describe the \dx{} protocol specification, which includes immutable paramters and state variables.
 % \begin{itemize}
 %   \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
 %   \item{} $p$ - basecoin price reported by the oracle at the moment (e.g. 20 USD per ERG, note, however, that the price provided by the oracle will usually be in units of $\frac{\mathrm{basecoin}}{\mathrm{stablecoin}}$, representing the price of the stablecoin in units of basecoins).
@@ -152,11 +154,120 @@ We now introduce notation that will be used in further sections:
 %   \item{} $u$ - amount of \stc{} in the liquidity pool.
 %   \item{} $O$ - amount of \stc{} in circulation that is outside the liquidity pool. The amount $O$ is not known for the \dx{} protocol, but the bank can easily store how many \stc{} tokens were minted and then get $O$ by deducting $u$ from it.
 %   \item{} $E$ - amount of basecoins in the bank. 
-% \end{itemize}  
+% \end{itemize}
+
+% Let A be the set of protocol actions such that:
+
+% $$A = \left\{ \textrm{ARB}, \textrm{FREE}, \textrm{IB}, \textrm{ED}, \textrm{RD} \right\}$$
+
+% \begin{itemize}
+%   \item ARB is the arbitrage-mint action.
+%   \item FREE is the free-mint action.
+%   \item IB is the inject-basecoins action.
+%   \item ED is the extract-dexy action.
+%   \item RD is the release-dexy action.
+% \end{itemize}
+
+The central bank parameters is a tuple $C_{\textrm{BANK}}$ of:
+$$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB}}, \epsilon_{\textrm{FREE}}, \epsilon_{\textrm{IB}}, \epsilon_{\textrm{ED}}^{0}, \epsilon_{\textrm{ED}}^{1}, \epsilon_{\textrm{RD}}, T_{\textrm{FREE}}, T_{\textrm{ARB}}, T_{\textrm{IB}},  \tau_{\textrm{IB}}, \tau_{\textrm{ED}}, \tau_{\textrm{RD}}, \tau_{\textrm{TX}}, \alpha_{\textrm{FREE}}, \alpha_{\textrm{IB}}  \right)$$
 
 \begin{itemize}
-  \item $s_{\textrm{BANK}} = \left(R, S_{D} \right)$
+  \item $\phi_{\textrm{BANK}}^{\textrm{FREE}} \in (0, 1)$ is the bank fee for the free-mint action.
+  \item $\phi_{\textrm{BANK}}^{\textrm{ARB}} \in (0,1)$ is the bank fee for the arbitrage-mint action.
+  \item $\epsilon_{\textrm{FREE}} \in (0, 1)$ defines the upper and lower bounds of the free-mint range, representing the percentage that the LP price deviates from the oracle price.
+  \item $0 < \epsilon_{\textrm{IB}} < \epsilon_{\textrm{FREE}}$ defines the percentage where the inject-basecoins action will restore the price.
+  \item $\epsilon_{\textrm{FREE}} < \epsilon_{\textrm{ED}}^{0} < 1$ defines the percentage where the extract-dexy action will happen.
+  \item $0 < \epsilon_{\textrm{ED}}^{1} < \epsilon_{\textrm{ED}}^{0}$ defines the percentage where the extract-dexy action will restore the price.
+  \item $\epsilon_{\textrm{RD}} < \epsilon_{\textrm{FEE}}$ defines the percentage where the release-dexy action will happen.
+  \item $T_{\textrm{FREE}} \in \mathbb{R}_{>0}$ is the free-mint period.
+  \item $T_{\textrm{ARB}} \in \mathbb{R}_{>0}$ is the arbitrage-mint period.
+  \item $T_{\textrm{IB}} \in \mathbb{R}_{>0}$ is the inject-basecoins period.
+  \item $\tau_{\textrm{IB}} \in \mathbb{R}_{>0}$ is the inject-basecoins bank delay.
+  \item $\tau_{\textrm{ED}} >> \tau_{\textrm{IB}}$ is the extract-dexy bank delay, which must be much larger than the inject-basecoins bank delay, since extraction is an action of last-resort.
+  \item $\tau_{\textrm{RD}} \in \mathbb{R}_{>0}$ is the release-dexy bank delay.
+  \item $\tau_{\textrm{TX}} \in \mathbb{R}_{>0}$ is the allowed transaction propogation delay.
+  \item $\alpha_{\textrm{FREE}} \in (0,1)$ is the percentage of the dexy liquidity in the liquidity pool that determines the max amount of dexy that can be minted from the bank during the free-mint period.
+  \item $\alpha_{\textrm{IB}} \in (0,1)$ is the percentage of the bank's basecoin reserve that determines the max amount of basecoins to inject into the liquidity pool during an inject-basecoin action.
 \end{itemize}
+
+The central bank state is determined by a tuple of two values:
+$$s_{\textrm{BANK}} = \left(R, S_{D} \right)$$
+
+\begin{itemize}
+  \item $R \in \mathbb{R}_{>0}$ is the bank's basecoins reserves.
+  \item $S_D \in \mathbb{R}_{>0}$ is the total supply of minted dexy stablecoins.
+\end{itemize}
+
+The liquidity pool has only one parameter:
+$$C_{LP} = \left(\phi_{LP}\right)$$
+
+\begin{itemize}
+  \item $\phi_{LP} \in (0,1)$ is the liquidity provider withdrawal fee, which should be high enough to disincentivize frequent withdrawals. 
+\end{itemize}
+
+The liquidity pool state is determined by a tuple of three values:
+$$s_{\textrm{LP}} = \left(B, D, S_{LP} \right)$$
+
+\begin{itemize}
+  \item $B \in \mathbb{R}_{>0}$ is the amount of basecoins in the liquidity pool.
+  \item $D \in \mathbb{R}_{>0}$ is the amount of dexy stablecoins in the liquidity pool.
+  \item $S_{LP} \in \mathbb{R}_{>0}$ is the supply of LP tokens provided to liquidity providers.
+\end{itemize}
+
+The oracle parameters are assumed to only be the following:
+$$C_{O} = \left(\phi_{O}\right)$$
+
+\begin{itemize}
+  \item $\phi_{O} \in (0,1)$ is the oracle fee.
+\end{itemize}
+
+The oracle state is determined by a tuple of two values:
+$$s_{\textrm{O}} = \left(\Pdt, F \right)$$
+
+\begin{itemize}
+  \item $\Pdt \in \mathbb{R}_{>0}$ is the target stablecoin price, in units of $\frac{\textrm{BASECOIN}}{\textrm{PEG ASSET}}$.
+  \item $F \in \mathbb{R}_{\ge 0}$ is the accumulated fees of the oracle.
+\end{itemize}
+
+For the sake of clarity, we now defines separate state variables for the different bank actions, 
+but these can also be considered as part of the bank state.
+
+The FreeMint action has the following state:
+$$s_{\textrm{FREE}} = \left( t, d \right)$$
+
+\begin{itemize}
+  \item $t \in \mathbb{R}_{>0}$ is the time when the free-mint period ends.
+  \item $d \in \mathbb{R}_{\ge0}$ is the remaining amount of dexy stablecoins that can be minted during the free-mint period.
+\end{itemize}
+
+The ArbMint action has the following state:
+$$s_{\textrm{ARB}} = \left(t, d, \tau\right)$$
+
+\begin{itemize}
+  \item $t \in \mathbb{R}_{>0}$ is the time when the arb-mint period ends.
+  \item $d \in \mathbb{R}_{\ge 0}$ is the remaining amount of dexy stablecoins that can be minted during the arb-mint period.
+  \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{FREE}}$. 
+\end{itemize}
+
+The InjectBasecoin action has the following state:
+$$s_{\textrm{IB}} = \left(t, \tau\right)$$
+
+\begin{itemize}
+  \item $t \in \mathbb{R}_{>0}$ is the time when the previous inject-basecoin action occurred.
+  \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r < 1 + \epsilon_{\textrm{FREE}}$. 
+\end{itemize}
+
+The ExtractDexy and ReleaseDexy actions share the following state:
+$$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{ED}}, \tau_{\textrm{ED}} \right)$$
+
+\begin{itemize}
+  \item $t_{\textrm{ED}} \in \mathbb{R}_{>0}$ is the time when the previous extract-dexy action occurred.
+  \item $t_{\textrm{RD}} \in \mathbb{R}_{>0}$ is the time when the previous release-dexy action occurred.
+  \item $d \in \mathbb{R}_{\ge 0}$ is the remaining dexy amount to be released.
+  \item $\tau_{\textrm{ED}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r \le 1 - \epsilon_{\textrm{ED}}^{0}$.
+  \item $\tau_{\textrm{RD}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{RD}}$.  
+\end{itemize}
+
 
 \section{Worst Case Scenario and Bank Reserves}
 \label{sec:worst-case}
