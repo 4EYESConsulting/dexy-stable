@@ -8,7 +8,11 @@
 \newcommand{\stc}{stablecoin}
 \newcommand{\Pdt}{P_{\mathrm{D}}^{*}}
 \newcommand{\Plp}{P_{\mathrm{D}}^{\mathrm{LP}}}
+\newcommand{\Sd}{S_{\mathrm{D}}}
+\newcommand{\rr}{\bar{r}}
+
 \newcommand{\slp}{s_{\mathrm{LP}}}
+\newcommand{\sbank}{s_{\textrm{BANK}}}
 
 \newcommand{\dx}{Dexy}
 \newcommand{\dxg}{DexyGold}
@@ -87,7 +91,7 @@ The \dx protocol functions via an algorithmic central bank that holds reserves i
 A corresponding liquidity pool exists where stablecoins and basecoins can be traded. 
 The peg price used by the bank is provided by an oracle, which is assumed to be trusted and reliable. 
 Users can interact with both the bank and the liqudity pool, but certain rules and restrictions are applied to control the price stability.
-Central bank interventions are determined by the ratio of the liquidity pool price to the oracle price, $r$. 
+Central bank interventions are determined by the ratio of the liquidity pool price to the oracle price, $r$, which we also call the reference reserve ratio. 
 
 %TODO: Insert fig from workshop presentation.
 
@@ -140,12 +144,23 @@ The following table shows the different actions in the protocol, the $r$ range w
 \hline
 \multicolumn{1}{|c|}{\textbf{Action}} & \multicolumn{1}{c|}{\textbf{Range}}                                   & \multicolumn{1}{c|}{\textbf{Restore Range}}                                                         \\ \hline
 FreeMint                              & $1- \epsilon_{\textrm{FREE}} \le r \le 1+ \epsilon_{\textrm{FREE}}$   & \multicolumn{1}{c|}{-}                                                                              \\ \hline
-ArbMint                               & $r > 1 + \epsilon_{\textrm{FREE}}$                                    & \multicolumn{1}{c|}{-}                                                                              \\ \hline
+ArbitrageMint                         & $r > 1 + \epsilon_{\textrm{FREE}}$                                    & \multicolumn{1}{c|}{-}                                                                              \\ \hline
 InjectBasecoins                       & $r < 1 - \epsilon_{\textrm{FREE}}$                                    & $1 - \epsilon_{\textrm{FREE}} \le r' \le 1-\epsilon_{\textrm{IB}}$                                  \\ \hline
 ExtractDexy                           & $r \le 1 - \epsilon_{\textrm{ED}}^{0} < 1 - \epsilon_{\textrm{FREE}}$ & $1 - \epsilon_{\textrm{ED}}^{0} + \epsilon_{\textrm{ED}}^{1} \le r' \le 1-\epsilon_{\textrm{FREE}}$ \\ \hline
 ReleaseDexy                           & $1 + \epsilon_{\textrm{RD}} < r <  1 + \epsilon_{\textrm{FREE}}$      & $r' \ge 1 + \epsilon_{\textrm{RD}}$                                                                  \\ \hline
 \end{tabular}
 \end{table}
+
+We now go over at a high-level what happens during each action. For more technical details, refer to section $\ref{sec:protocol}$.
+
+\subsubsection{FreeMint}
+  \begin{itemize}
+    \item  
+  \end{itemize}
+\subsubsection{ArbitrageMint}
+\subsubsection{InjectBasecoins}
+\subsubsection{ExtractDexy}
+\subsubsection{ReleaseDexy}
 
 \section{Protocol Specification}
 \label{sec:protocol}
@@ -276,23 +291,45 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 
 \subsection{Auxiliary Definitions}
 
-\begin{definition}[The Reference Price]
-  The liquidity pool price, or the reference market price, is defined as the following, 
-  and like the oracle price, has units of $\frac{\textrm{BASECOIN}}{\textrm{PEG ASSET}}$:
+\begin{definition}[Bank Liabilities]
+  The bank liabilities is defined as the product of 
+  the oracle price and the minted supply of dexy stablecoins:
   \begin{equation}
-    \Plp(\slp) = \frac{\slp.B}{\slp.D}
+    L(\Pdt, \sbank) = \Pdt \Sd
   \end{equation}
-  
 \end{definition}
 
-\begin{definition}[The Reference Reserve Ratio]
-    We call the ratio of the liquidity pool price to the oracle price the reference reserve ratio,
-    for simplicity, because the formula resemble the typical formula defining a reserve ratio,
-    namely the ratio of a reserve to its liabilities:
+\begin{definition}[Bank Reserve Ratio]
+  The bank reserve ratio is defined as the ratio of its reserves to its liabilities:
+  \begin{equation}
+    r(\Pdt, \sbank) = \frac{R}{L(\Pdt, \sbank)} = \frac{R}{\Pdt \Sd}
+  \end{equation}
+  Assuming the oracle price is constant, and the reserves are greater than the liabilities,
+  the bank reserve ratio will always increase after stablecoins are minted. 
+  During periods of sudden basecoin price crashes, the reserve ratio will decrease. 
+  Since users cannot sell dexy stablecoins to the bank, the bank is liable to no one, 
+  thus the bank reserves can be less than its liabilities, which is expected during bank interventions.
+  So, a measure of the health of the $\dx{}$ protocol is having an increasing reserve ratio, 
+  before and after bank interventions.
+ 
+\end{definition}
+
+\begin{definition}[Reference Price]
+  The liquidity pool price, or the reference market price, is defined as follows:
+  \begin{equation}
+    \Plp(\slp) = \frac{B}{D}
+  \end{equation}
+  The reference price, $\Plp$, has units of $\frac{\textrm{BASECOIN}}{\textrm{PEG ASSET}}$.
+\end{definition}
+
+\begin{definition}[Reference Reserve Ratio]
+    The ratio of the liquidity pool price to the oracle price is called the reference reserve ratio:
 \begin{equation}
   \label{eq:r}
-  r(\Pdt, \slp) = \frac{\Plp(\slp)}{\Pdt} = \frac{\slp.B}{\Pdt \slp.D}
+  \bar{r}(\Pdt, \slp) = \frac{\Plp(\slp)}{\Pdt} = \frac{B}{\Pdt D}
 \end{equation}
+  The aim of the $\dx{}$ protocol is to maintain $\rr$ within a sufficiently small neighbourhood of 1.
+  $\rr$ is called the reference reserve ratio since we can interpret the formula as the reserve ratio of the liquidity pool.
 \end{definition}
 
 \subsection{State Update Procedures}
