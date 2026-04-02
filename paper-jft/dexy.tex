@@ -3,6 +3,8 @@
 \usepackage{makeidx}
 \usepackage{amsthm}
 \usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 
 \newcommand{\bc}{ERG}
 \newcommand{\stc}{stablecoin}
@@ -11,8 +13,20 @@
 \newcommand{\Sd}{S_{\mathrm{D}}}
 \newcommand{\rr}{\bar{r}}
 
-\newcommand{\slp}{s_{\mathrm{LP}}}
 \newcommand{\sbank}{s_{\textrm{BANK}}}
+\newcommand{\slp}{s_{\mathrm{LP}}}
+\newcommand{\soracle}{s_{\textrm{O}}}
+\newcommand{\sfree}{s_{\textrm{FREE}}}
+\newcommand{\sarb}{s_{\textrm{ARB}}}
+\newcommand{\sib}{s_{\textrm{IB}}}
+\newcommand{\sburn}{s_{\textrm{BURN}}}
+
+\newcommand{\tautx}{\tau_{\textrm{TX}}}
+
+\newcommand{\epsilonfree}{\epsilon_{\textrm{FREE}}}
+\newcommand{\epsilondexyzero}{\epsilon_{\textrm{ED}}^{0}}
+\newcommand{\epsilondexyone}{\epsilon_{\textrm{ED}}^{1}}
+\newcommand{\epsilonreleasedexy}{\epsilon_{\textrm{RD}}}
 
 \newcommand{\dx}{Dexy}
 \newcommand{\dxg}{DexyGold}
@@ -336,11 +350,107 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 
 \subsubsection{UpdateArbitrageMint}
 
+\begin{algorithm}
+\caption{UpdateArbitrageMint}\label{alg:update-arbmint}
+\begin{algorithmic}[1]
+\State $(\tilde{t}, d, \tau) \gets \sarb$
+\State $\rr \gets \rr(\Pdt, \slp) $
+\State $notUpdated \gets (\tau == \infty)$
+\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+\State $notReset \gets (\tau < \infty)$
+\State $validReset \gets (t' == \infty)$
+\State $isUpdate \gets (\rr > 1  + \epsilonfree) \land notUpdated \land validUpdate$ 
+\State $isReset \gets (\rr \le 1 + \epsilonfree) \land notReset \land validReset$
+\If{$isUpdate \lor isReset$}
+  \State $\sarb \gets (\tilde{t}, d, t')$
+\Else
+  \State $\sarb \gets \sarb$
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+% \begin{equation}
+% \operatorname{UpdateArbitrageMint}(\Pdt,\slp,\sarb, t, t'):
+% \begin{cases}
+%   (\tilde{t}, d, \tau) \leftarrow \sarb \\
+%   \rr \leftarrow \rr(\Pdt, \slp) \\
+%   \textrm{isUpdate} \leftarrow (\rr > 1 + \epsilonfree) \\
+%   \textrm{isReset} \leftarrow (\rr \le 1 + \epsilonfree) \\
+%   if 
+%   % \textrm{notUpdated} \leftarrow (\tau == \infty) \\
+%   % \textrm{isUpdate} \leftarrow (t' \geq t - \tautx) \land (t' \le t) \\
+%   % \textrm{notReset} \leftarrow (\tau < \infty) \\
+%   % \textrm{isReset} \leftarrow (t' == \infty) \\
+%   % \textrm{update} \leftarrow (\rr > 1 + \epsilonfree) \land notUpdated \land isUpdate  \\
+%   \text{if } t \ge T_{\mathrm{dep}}(u) + \Delta_{\mathrm{dep}} \text{ and } L_\ell(u) > 0 \\
+%     \quad L_f(u) \leftarrow L_f(u) + L_\ell(u) \\
+%     \quad L_\ell(u) \leftarrow 0.
+% \end{cases}
+% \label{eq:update-arbmint}
+% \end{equation}
+
 \subsubsection{UpdateInjectBasecoins}
+
+\begin{algorithm}
+\caption{UpdateInjectBasecoins}\label{alg:update-inject-basecoins}
+\begin{algorithmic}[1]
+\State $(\tilde{t}, d, \tau) \gets \sarb$
+\State $\rr \gets \rr(\Pdt, \slp) $
+\State $notUpdated \gets (\tau == \infty)$
+\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+\State $notReset \gets (\tau < \infty)$
+\State $validReset \gets (t' == \infty)$
+\State $isUpdate \gets (\rr < 1  - \epsilonfree) \land notUpdated \land validUpdate$ 
+\State $isReset \gets (\rr \ge 1 - \epsilonfree) \land notReset \land validReset$
+\If{$isUpdate \lor isReset$}
+  \State $\sarb \gets (\tilde{t}, d, t')$
+\Else
+  \State $\sarb \gets \sarb$
+\EndIf
+\end{algorithmic}
+\end{algorithm}
 
 \subsubsection{UpdateExtractDexy}
 
+\begin{algorithm}
+\caption{UpdateExtractDexy}\label{alg:update-extract-dexy}
+\begin{algorithmic}[1]
+\State $(\tilde{t}, d, \tau) \gets \sarb$
+\State $\rr \gets \rr(\Pdt, \slp) $
+\State $notUpdated \gets (\tau == \infty)$
+\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+\State $notReset \gets (\tau < \infty)$
+\State $validReset \gets (t' == \infty)$
+\State $isUpdate \gets (\rr \le 1 - \epsilondexyzero) \land notUpdated \land validUpdate$ 
+\State $isReset \gets (\rr > 1 - \epsilondexyzero) \land notReset \land validReset$
+\If{$isUpdate \lor isReset$}
+  \State $\sarb \gets (\tilde{t}, d, t')$
+\Else
+  \State $\sarb \gets \sarb$
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
 \subsubsection{UpdateReleaseDexy}
+
+\begin{algorithm}
+\caption{UpdateReleaseDexy}\label{alg:update-release-dexy}
+\begin{algorithmic}[1]
+\State $(\tilde{t}, d, \tau) \gets \sarb$
+\State $\rr \gets \rr(\Pdt, \slp) $
+\State $notUpdated \gets (\tau == \infty)$
+\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+\State $notReset \gets (\tau < \infty)$
+\State $validReset \gets (t' == \infty)$
+\State $isUpdate \gets (\rr > 1  + \epsilonreleasedexy) \land notUpdated \land validUpdate$ 
+\State $isReset \gets (\rr \le 1 + \epsilonreleasedexy) \land notReset \land validReset$
+\If{$isUpdate \lor isReset$}
+  \State $\sarb \gets (\tilde{t}, d, t')$
+\Else
+  \State $\sarb \gets \sarb$
+\EndIf
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Protocol Operations}
 
