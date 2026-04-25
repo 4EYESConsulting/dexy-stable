@@ -5,6 +5,7 @@
 \usepackage{amssymb}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{float}
 
 \newcommand{\bc}{ERG}
 \newcommand{\stc}{stablecoin}
@@ -233,11 +234,12 @@ $$s_{\textrm{BANK}} = \left(R, S_{D} \right)$$
   \item $S_D \in \mathbb{R}_{>0}$ is the total supply of minted dexy stablecoins.
 \end{itemize}
 
-The liquidity pool has only one parameter:
-$$C_{LP} = \left(\phi_{LP}\right)$$
+The liquidity pool has two parameter:
+$$C_{LP} = \left(\phi^{REDEEM}_{LP}, \phi^{SWAP}_{LP}\right)$$
 
 \begin{itemize}
-  \item $\phi_{LP} \in (0,1)$ is the liquidity provider withdrawal fee, which should be high enough to disincentivize frequent withdrawals. 
+  \item $\phi^{REDEEM}_{LP} \in (0,1)$ is the liquidity provider withdrawal fee, which should be high enough to disincentivize frequent withdrawals.
+  \item $\phi^{SWAP}_{LP} \in (0, 1)$ is the liquidity pool swap fee, which is used to reward liquidity providers. 
 \end{itemize}
 
 The liquidity pool state is determined by a tuple of three values:
@@ -272,7 +274,7 @@ $$s_{\textrm{FREE}} = \left( t, d \right)$$
 
 \begin{itemize}
   \item $t \in \mathbb{R}_{>0}$ is the time when the free-mint period ends.
-  \item $d \in \mathbb{R}_{\ge0}$ is the remaining amount of dexy stablecoins that can be minted during the free-mint period.
+  \item $d \in \mathbb{R}_{\ge0}$ is the remaining amount of dexy stablecoins that can be minted during the current free-mint period, determined by $t$.
 \end{itemize}
 
 The ArbMint action has the following state:
@@ -280,8 +282,9 @@ $$s_{\textrm{ARB}} = \left(t, d, \tau\right)$$
 
 \begin{itemize}
   \item $t \in \mathbb{R}_{>0}$ is the time when the arbitrage-mint period ends.
-  \item $d \in \mathbb{R}_{\ge 0}$ is the remaining amount of dexy stablecoins that can be minted during the arbitrage-mint period.
-  \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{FREE}}$. 
+  \item $d \in \mathbb{R}_{\ge 0}$ is the remaining amount of dexy stablecoins that can be minted during the current arbitrage-mint period, determined by $t$.
+  \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{FREE}}$. Obviously, this can occur more than once as time goes on,
+        each one corresponding to a potentially new arbitrage-mint period. 
 \end{itemize}
 
 The InjectBasecoin action has the following state:
@@ -333,7 +336,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \begin{equation}
     \Plp(\slp) = \frac{B}{D}
   \end{equation}
-  The reference price, $\Plp$, has units of $\frac{\textrm{BASECOIN}}{\textrm{PEG ASSET}}$.
+  The reference price, $\Plp$, has units of $\frac{\textrm{BASECOIN}}{\textrm{STABLECOIN}}$.
 \end{definition}
 
 \begin{definition}[Reference Reserve Ratio]
@@ -350,7 +353,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 
 \subsubsection{UpdateArbitrageMint}
 
-\begin{algorithm}
+\begin{algorithm}[H]
 \caption{UpdateArbitrageMint}\label{alg:update-arbmint}
 \begin{algorithmic}[1]
 \State $(\tilde{t}, d, \tau) \gets \sarb$
@@ -391,7 +394,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 
 \subsubsection{UpdateInjectBasecoins}
 
-\begin{algorithm}
+\begin{algorithm}[H]
 \caption{UpdateInjectBasecoins}\label{alg:update-inject-basecoins}
 \begin{algorithmic}[1]
 \State $(\tilde{t}, d, \tau) \gets \sarb$
@@ -412,7 +415,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 
 \subsubsection{UpdateExtractDexy}
 
-\begin{algorithm}
+\begin{algorithm}[H]
 \caption{UpdateExtractDexy}\label{alg:update-extract-dexy}
 \begin{algorithmic}[1]
 \State $(\tilde{t}, d, \tau) \gets \sarb$
@@ -433,7 +436,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 
 \subsubsection{UpdateReleaseDexy}
 
-\begin{algorithm}
+\begin{algorithm}[H]
 \caption{UpdateReleaseDexy}\label{alg:update-release-dexy}
 \begin{algorithmic}[1]
 \State $(\tilde{t}, d, \tau) \gets \sarb$
@@ -455,6 +458,31 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 \subsection{Protocol Operations}
 
 \subsubsection{FreeMint}
+
+\begin{algorithm}[H]
+\caption{FreeMint}\label{alg:freemint}
+\begin{algorithmic}[1]
+  \Require $\soracle, \slp, \sbank, \sfree, \textrm{Basecoins } b, \textrm{Tx submission time } t', \textrm{Current time } t$
+  \State $(\tilde{t}, tilde{d}) \gets \sfree$
+  \State $\rr \gets \rr(\Pdt, \slp) $
+  \State $\tilde{\Pdt} \gets \Pdt(1 + \phi_{\textrm{BANK}}^{\textrm{FREE}} + \phi_{O})$
+  \State $isCounterReset \gets (t > \tilde{t})$ \Comment{If true, then the protocol is in a new FreeMint period.}
+  \State $dexyMinted \gets \frac{b}{\tilde{\Pdt}}$
+  \State $\delta_{d} \gets \alpha_{\textrm{FREE}}\slp.D$ \Comment{Represents the maximum bank reserve growth during the FreeMint period.}
+  \State $dexyAvailable \gets isCounterReset ? \delta_{d} : \tilde{d}$
+  \State $validAmount \gets dexyMinted \le dexyAvailable$
+  \State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+  \State $notReset \gets (\tau < \infty)$
+  \State $validReset \gets (t' == \infty)$
+  \State $isUpdate \gets (\rr > 1  + \epsilonreleasedexy) \land notUpdated \land validUpdate$ 
+  \State $isReset \gets (\rr \le 1 + \epsilonreleasedexy) \land notReset \land validReset$
+  \If{$isUpdate \lor isReset$}
+    \State $\sarb \gets (\tilde{t}, d, t')$
+  \Else
+    \State $\sarb \gets \sarb$
+  \EndIf
+\end{algorithmic}
+\end{algorithm}
 
 \subsubsection{ArbitrageMint}
 
