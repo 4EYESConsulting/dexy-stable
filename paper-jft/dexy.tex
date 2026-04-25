@@ -462,7 +462,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 \begin{algorithm}[H]
 \caption{FreeMint}\label{alg:freemint}
 \begin{algorithmic}[1]
-  \Require $\soracle, \slp, \sbank, \sfree, \textrm{Basecoins } b, \textrm{Tx submission time } t', \textrm{Current time } t$
+  \Require $\soracle, \slp, \sbank, \sfree, \textrm{Basecoins } b, \textrm{Updated period end} t', \textrm{Current time } t$
   \State $(\tilde{t}, tilde{d}) \gets \sfree$
   \State $\rr \gets \rr(\Pdt, \slp) $
   \State $\tilde{\Pdt} \gets \Pdt(1 + \phi_{\textrm{BANK}}^{\textrm{FREE}} + \phi_{O})$
@@ -471,15 +471,25 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \State $\delta_{d} \gets \alpha_{\textrm{FREE}}\slp.D$ \Comment{Represents the maximum bank reserve growth during the FreeMint period.}
   \State $dexyAvailable \gets isCounterReset ? \delta_{d} : \tilde{d}$
   \State $validAmount \gets dexyMinted \le dexyAvailable$
-  \State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
-  \State $notReset \gets (\tau < \infty)$
-  \State $validReset \gets (t' == \infty)$
-  \State $isUpdate \gets (\rr > 1  + \epsilonreleasedexy) \land notUpdated \land validUpdate$ 
-  \State $isReset \gets (\rr \le 1 + \epsilonreleasedexy) \land notReset \land validReset$
-  \If{$isUpdate \lor isReset$}
-    \State $\sarb \gets (\tilde{t}, d, t')$
+  \If{$\lnot isCounterReset$}
+    \State $t' \gets \tilde{t}$
+    \State $validUpdate \gets True$
+  \Else 
+    \If{$t' \in [t + T_{\textrm{FREE}}, t + T_{\textrm{FREE}} + \tautx]$}
+      \State $validUpdate \gets True$
+    \Else
+      \State $validUpdate \gets False$ 
+    \EndIf 
+  \EndIf
+  \State $validRatio \gets \rr \in (1-\epsilonfree, 1 + \epsilonfree)$
+  \If{$validUpdate \land validRatio$}
+    \State $\sbank \gets \sbank + (b, dexyMinted)$
+    \State $\soracle \gets so + (0, oracleFeeAmount)$
+    \State $\sfree \gets (t', dexyAvailable - dexyMinted)$
   \Else
-    \State $\sarb \gets \sarb$
+    \State $\sbank \gets \sbank$
+    \State $\soracle \gets so$
+    \State $\sfree \gets \sfree$
   \EndIf
 \end{algorithmic}
 \end{algorithm}
