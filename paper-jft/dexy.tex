@@ -25,6 +25,7 @@
 \newcommand{\tautx}{\tau_{\textrm{TX}}}
 
 \newcommand{\epsilonfree}{\epsilon_{\textrm{FREE}}}
+\newcommand{\epsilonib}{\epsilon_{\textrm{IB}}}
 \newcommand{\epsilondexyzero}{\epsilon_{\textrm{ED}}^{0}}
 \newcommand{\epsilondexyone}{\epsilon_{\textrm{ED}}^{1}}
 \newcommand{\epsilonreleasedexy}{\epsilon_{\textrm{RD}}}
@@ -179,7 +180,10 @@ We now go over at a high-level what happens during each action. For more technic
 
 \section{Protocol Specification}
 \label{sec:protocol}
-We now describe the \dx{} protocol specification, which includes immutable paramters and state variables.
+We now describe the \dx{} protocol specification, which includes immutable paramters and state variables. We note the distinction between an action period, 
+which measures how long the bank is in a particular state, and a corresponding action bank delay, which measures how long before a bank action can be performed, 
+i.e. the delay before the start of the first bank action period. For a particular bank action, there may be multiple periods before a new delay is required.
+Whether or not these are set to be equal is an implementation decision.
 % \begin{itemize}
 %   \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
 %   \item{} $p$ - basecoin price reported by the oracle at the moment (e.g. 20 USD per ERG, note, however, that the price provided by the oracle will usually be in units of $\frac{\mathrm{basecoin}}{\mathrm{stablecoin}}$, representing the price of the stablecoin in units of basecoins).
@@ -218,6 +222,7 @@ $$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB
   \item $T_{\textrm{FREE}} \in \mathbb{R}_{>0}$ is the free-mint period.
   \item $T_{\textrm{ARB}} \in \mathbb{R}_{>0}$ is the arbitrage-mint period.
   \item $T_{\textrm{IB}} \in \mathbb{R}_{>0}$ is the inject-basecoins period.
+  \item $\tau_{\textrm{ARB}} \in \mathbb{R}_{>0}$ is the arbitrage-mint bank delay.
   \item $\tau_{\textrm{IB}} \in \mathbb{R}_{>0}$ is the inject-basecoins bank delay.
   \item $\tau_{\textrm{ED}} >> \tau_{\textrm{IB}}$ is the extract-dexy bank delay, which must be much larger than the inject-basecoins bank delay, since extraction is an action of last-resort.
   \item $\tau_{\textrm{RD}} \in \mathbb{R}_{>0}$ is the release-dexy bank delay.
@@ -283,8 +288,8 @@ $$s_{\textrm{ARB}} = \left(t, d, \tau\right)$$
 \begin{itemize}
   \item $t \in \mathbb{R}_{>0}$ is the time when the arbitrage-mint period ends.
   \item $d \in \mathbb{R}_{\ge 0}$ is the remaining amount of dexy stablecoins that can be minted during the current arbitrage-mint period, determined by $t$.
-  \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{FREE}}$. Obviously, this can occur more than once as time goes on,
-        each one corresponding to a potentially new arbitrage-mint period. 
+  \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{FREE}}$. This can occur more than once as time goes on,
+        each occurrence corresponding to a potentially new arbitrage-mint period. 
 \end{itemize}
 
 The InjectBasecoin action has the following state:
@@ -292,7 +297,8 @@ $$s_{\textrm{IB}} = \left(t, \tau\right)$$
 
 \begin{itemize}
   \item $t \in \mathbb{R}_{>0}$ is the time when the previous inject-basecoin action occurred.
-  \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r < 1 + \epsilon_{\textrm{FREE}}$. 
+  \item $\tau \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r < 1 + \epsilon_{\textrm{FREE}}$. This can occur more than once as time goes on,
+        each occurrence corresponding to a potentially new inject-basecoin period.
 \end{itemize}
 
 The ExtractDexy and ReleaseDexy actions share the following state:
@@ -302,7 +308,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \item $t_{\textrm{ED}} \in \mathbb{R}_{>0}$ is the time when the previous extract-dexy action occurred.
   \item $t_{\textrm{RD}} \in \mathbb{R}_{>0}$ is the time when the previous release-dexy action occurred.
   \item $d \in \mathbb{R}_{\ge 0}$ is the remaining dexy amount to be released.
-  \item $\tau_{\textrm{ED}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r \le 1 - \epsilon_{\textrm{ED}}^{0}$.
+  \item $\tau_{\textrm{ED}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r \le 1 - \epsilon_{\textrm{ED}}^{0}$. 
   \item $\tau_{\textrm{RD}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{RD}}$.  
 \end{itemize}
 
@@ -455,6 +461,8 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 \end{algorithmic}
 \end{algorithm}
 
+\newpage
+
 \subsection{Protocol Operations}
 
 \subsubsection{FreeMint}
@@ -462,33 +470,34 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 \begin{algorithm}[H]
 \caption{FreeMint}\label{alg:freemint}
 \begin{algorithmic}[1]
-  \Require $\soracle, \slp, \sbank, \sfree, \textrm{Basecoins } b, \textrm{Updated period end} t', \textrm{Current time } t$
+  \Require $\soracle, \slp, \sbank, \sfree, \textrm{Basecoins } b, \textrm{Updated period end time } T', \textrm{Current time } t$
   \State $(\tilde{t}, tilde{d}) \gets \sfree$
   \State $\rr \gets \rr(\Pdt, \slp) $
   \State $\tilde{\Pdt} \gets \Pdt(1 + \phi_{\textrm{BANK}}^{\textrm{FREE}} + \phi_{O})$
   \State $isCounterReset \gets (t > \tilde{t})$ \Comment{If true, then the protocol is in a new FreeMint period.}
   \State $dexyMinted \gets \frac{b}{\tilde{\Pdt}}$
+  \State $oracleFeeAmount \gets dexyMinted * \Pdt * \phi_{O}$
   \State $\delta_{d} \gets \alpha_{\textrm{FREE}}\slp.D$ \Comment{Represents the maximum bank reserve growth during the FreeMint period.}
-  \State $dexyAvailable \gets isCounterReset ? \delta_{d} : \tilde{d}$
+  \State $dexyAvailable \gets isCounterReset \textrm{ ? } \delta_{d} \textrm{ : } \tilde{d}$
   \State $validAmount \gets dexyMinted \le dexyAvailable$
   \If{$\lnot isCounterReset$}
-    \State $t' \gets \tilde{t}$
-    \State $validUpdate \gets True$
+    \State $T' \gets \tilde{t}$
+    \State $validUpdate \gets \textsc{true}$
   \Else 
-    \If{$t' \in [t + T_{\textrm{FREE}}, t + T_{\textrm{FREE}} + \tautx]$}
-      \State $validUpdate \gets True$
+    \If{$T' \in [t + T_{\textrm{FREE}}, t + T_{\textrm{FREE}} + \tautx]$} \Comment{Checks new FreeMint period end time.}
+      \State $validUpdate \gets \textsc{true}$
     \Else
-      \State $validUpdate \gets False$ 
+      \State $validUpdate \gets \textsc{false}$ 
     \EndIf 
   \EndIf
   \State $validRatio \gets \rr \in (1-\epsilonfree, 1 + \epsilonfree)$
   \If{$validUpdate \land validRatio$}
     \State $\sbank \gets \sbank + (b, dexyMinted)$
-    \State $\soracle \gets so + (0, oracleFeeAmount)$
+    \State $\soracle \gets \soracle + (0, oracleFeeAmount)$
     \State $\sfree \gets (t', dexyAvailable - dexyMinted)$
   \Else
     \State $\sbank \gets \sbank$
-    \State $\soracle \gets so$
+    \State $\soracle \gets \soracle$
     \State $\sfree \gets \sfree$
   \EndIf
 \end{algorithmic}
@@ -496,7 +505,75 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 
 \subsubsection{ArbitrageMint}
 
+\begin{algorithm}[H]
+\caption{ArbMint}\label{alg:arbmint}
+\begin{algorithmic}[1]
+  \Require $\soracle, \slp, \sbank, \sarb, \textrm{Basecoins } b, \textrm{Updated period end time } T', \textrm{Current time } t$
+  \State $(\tilde{t}, tilde{d}, \tilde{\tau}) \gets \sarb$
+  \State $\rr \gets \rr(\Pdt, \slp) $
+  \State $\tilde{\Pdt} \gets \Pdt(1 + \phi_{\textrm{BANK}}^{\textrm{FREE}} + \phi_{O})$
+  \State $isCounterReset \gets (t > \tilde{t})$ \Comment{If true, then the protocol is in a new ArbMint period.}
+  \State $dexyMinted \gets \frac{b}{\tilde{\Pdt}}$
+  \State $oracleFeeAmount \gets dexyMinted * \Pdt * \phi_{O}$
+  \State $\delta_{b} \gets \slp.B - \slp.D * \tilde{\Pdt}$
+  \State $\delta_{d} \gets \frac{\delta_{b}}{\tilde{\Pdt}}$ \Comment{Represents the maximum bank reserve growth during the ArbMint period.}
+  \State $dexyAvailable \gets isCounterReset \textrm{ ? } \delta_{d} \textrm{ : } \tilde{d}$
+  \State $validAmount \gets dexyMinted \le dexyAvailable$
+  \If{$\lnot isCounterReset$}
+    \State $T' \gets \tilde{t}$
+    \State $validUpdate \gets \textsc{true}$
+  \Else 
+    \If{$T' \in [t + T_{\textrm{ARB}}, t + T_{\textrm{ARB}} + \tautx]$} \Comment{Checks new ArbMint period end time.}
+      \State $validUpdate \gets \textsc{true}$
+    \Else
+      \State $validUpdate \gets \textsc{false}$ 
+    \EndIf 
+  \EndIf
+  \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{ARB}}$
+  \State $validRatio \gets \rr > 1 + \epsilonfree$
+  \If{$validUpdate \land validDelay \land validRatio$}
+    \State $\sbank \gets \sbank + (b, dexyMinted)$
+    \State $\soracle \gets \soracle + (0, oracleFeeAmount)$
+    \State $\sarb \gets (T', dexyAvailable - dexyMinted)$
+  \Else
+    \State $\sbank \gets \sbank$
+    \State $\soracle \gets \soracle$
+    \State $\sarb \gets \sarb$
+  \EndIf
+\end{algorithmic}
+\end{algorithm}
+
 \subsubsection{InjectBasecoins}
+
+\begin{algorithm}[H]
+\caption{InjectBasecoins}\label{alg:inject-basecoins}
+\begin{algorithmic}[1]
+  \Require $\soracle, \slp, \sbank, \sib, \textrm{Basecoins } b, \textrm{Tx creation time } t', \textrm{Current time } t$
+  \State $(\tilde{t}, \tilde{\tau}) \gets \sib$
+  \State $(R, \Sd) \gets \sbank$
+  \State $(B, D) \gets \slp$
+  \State $\slp' \gets (B + b, D)$
+  \State $\rr \gets \rr(\Pdt, \slp) $
+  \State $\rr' \gets \rr(\Pdt, \slp')$
+  \State $validAmount \gets b \le \alpha_{\textrm{IB}} * \Sd$
+  \State $validRatio \gets \rr < 1 - \epsilonfree$
+  \State $validInjectionRatio \gets \rr' \in \left[ 1-\epsilonfree, 1 - \epsilonib \right]$
+  \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{IB}}$
+  \State $validInjectionPeriod \gets t > \tilde{t} + T_{\textrm{IB}}$
+  \State $validUpdate \gets t \le t' + \tautx$
+  \State $validAmounts \gets validAmount \land validRatio \land validInjectionRatio$
+  \State $validTimes \gets validDelay \land validInjectionPeriod \land validUpdate$
+  \If{$validAmounts \land validTimes$}
+    \State $\sbank \gets \sbank - (b, 0)$
+    \State $\slp \gets \slp + (b, 0)$
+    \State $\sib \gets (t', \tilde{\tau})$
+  \Else
+    \State $\sbank \gets \sbank$
+    \State $\slp \gets \slp$
+    \State $\sib \gets \sib$
+  \EndIf
+\end{algorithmic}
+\end{algorithm}
 
 \subsubsection{ExtractDexy}
 
