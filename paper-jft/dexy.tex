@@ -302,7 +302,7 @@ $$s_{\textrm{IB}} = \left(t, \tau\right)$$
 \end{itemize}
 
 The ExtractDexy and ReleaseDexy actions share the following state:
-$$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{ED}}, \tau_{\textrm{ED}} \right)$$
+$$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{ED}}, \tau_{\textrm{RD}} \right)$$
 
 \begin{itemize}
   \item $t_{\textrm{ED}} \in \mathbb{R}_{>0}$ is the time when the previous extract-dexy action occurred.
@@ -355,25 +355,32 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   $\rr$ is called the reference reserve ratio since we can interpret the formula as the reserve ratio of the liquidity pool.
 \end{definition}
 
+\newpage
+
 \subsection{State Update Procedures}
 
 \subsubsection{UpdateArbitrageMint}
 
-\begin{algorithm}[H]
+Hello this is a test.
+
+\begin{algorithm}
 \caption{UpdateArbitrageMint}\label{alg:update-arbmint}
 \begin{algorithmic}[1]
-\State $(\tilde{t}, d, \tau) \gets \sarb$
-\State $\rr \gets \rr(\Pdt, \slp) $
+\Require $\soracle, \slp, \sarb, \textrm{Update time } t', \textrm{Current time } t$
+\State $(\tilde{t}, \tilde{d}, \tilde{\tau}) \gets \sarb$
+\State $(\Pdt, F) \gets \soracle$
+\State $\rr \gets \rr(\Pdt, \slp)$
 \State $notUpdated \gets (\tau == \infty)$
-\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Update time is in a valid interval.}
 \State $notReset \gets (\tau < \infty)$
 \State $validReset \gets (t' == \infty)$
 \State $isUpdate \gets (\rr > 1  + \epsilonfree) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr \le 1 + \epsilonfree) \land notReset \land validReset$
 \If{$isUpdate \lor isReset$}
-  \State $\sarb \gets (\tilde{t}, d, t')$
+  \State $\sarb \gets (\tilde{t}, \tilde{d}, t')$
+  \State \Return \textsc{true}
 \Else
-  \State $\sarb \gets \sarb$
+  \State \Return \textsc{false}
 \EndIf
 \end{algorithmic}
 \end{algorithm}
@@ -398,65 +405,80 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 % \label{eq:update-arbmint}
 % \end{equation}
 
+\newpage
+
 \subsubsection{UpdateInjectBasecoins}
 
 \begin{algorithm}[H]
 \caption{UpdateInjectBasecoins}\label{alg:update-inject-basecoins}
 \begin{algorithmic}[1]
-\State $(\tilde{t}, d, \tau) \gets \sarb$
-\State $\rr \gets \rr(\Pdt, \slp) $
+\Require $\soracle, \slp, \sib, \textrm{Update time } t', \textrm{Current time } t$
+\State $(\tilde{t}, \tilde{\tau}) \gets \sib$
+\State $(\Pdt, F) \gets \soracle$
+\State $\rr \gets \rr(\Pdt, \slp)$
 \State $notUpdated \gets (\tau == \infty)$
-\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Update time is in a valid interval.}
 \State $notReset \gets (\tau < \infty)$
 \State $validReset \gets (t' == \infty)$
 \State $isUpdate \gets (\rr < 1  - \epsilonfree) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr \ge 1 - \epsilonfree) \land notReset \land validReset$
 \If{$isUpdate \lor isReset$}
-  \State $\sarb \gets (\tilde{t}, d, t')$
+  \State $\sib \gets (\tilde{t}, t')$
+  \State \Return \textsc{true}
 \Else
-  \State $\sarb \gets \sarb$
+  \State \Return \textsc{false}
 \EndIf
 \end{algorithmic}
 \end{algorithm}
+
+\newpage
 
 \subsubsection{UpdateExtractDexy}
 
 \begin{algorithm}[H]
 \caption{UpdateExtractDexy}\label{alg:update-extract-dexy}
 \begin{algorithmic}[1]
-\State $(\tilde{t}, d, \tau) \gets \sarb$
-\State $\rr \gets \rr(\Pdt, \slp) $
+\Require $\soracle, \slp, \sburn, \textrm{Update time } t', \textrm{Current time } t$
+\State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}}) \gets \sburn$
+\State $(\Pdt, F) \gets \soracle$ 
+\State $\rr \gets \rr(\Pdt, \slp)$
 \State $notUpdated \gets (\tau == \infty)$
-\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Update time is in a valid interval.}
 \State $notReset \gets (\tau < \infty)$
 \State $validReset \gets (t' == \infty)$
 \State $isUpdate \gets (\rr \le 1 - \epsilondexyzero) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr > 1 - \epsilondexyzero) \land notReset \land validReset$
 \If{$isUpdate \lor isReset$}
-  \State $\sarb \gets (\tilde{t}, d, t')$
+  \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, t', \tilde{\tau_{\textrm{RD}}})$
+  \State \Return \textsc{true}
 \Else
-  \State $\sarb \gets \sarb$
+  \State \Return \textsc{false}
 \EndIf
 \end{algorithmic}
 \end{algorithm}
+
+\newpage
 
 \subsubsection{UpdateReleaseDexy}
 
 \begin{algorithm}[H]
 \caption{UpdateReleaseDexy}\label{alg:update-release-dexy}
 \begin{algorithmic}[1]
-\State $(\tilde{t}, d, \tau) \gets \sarb$
-\State $\rr \gets \rr(\Pdt, \slp) $
+\Require $\soracle, \slp, \sburn, \textrm{Update time } t', \textrm{Current time } t$
+\State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}}) \gets \sburn$
+\State $(\Pdt, F) \gets \soracle$ 
+\State $\rr \gets \rr(\Pdt, \slp)$
 \State $notUpdated \gets (\tau == \infty)$
-\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Tx submission time is in a valid interval.}
+\State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Update time is in a valid interval.}
 \State $notReset \gets (\tau < \infty)$
 \State $validReset \gets (t' == \infty)$
 \State $isUpdate \gets (\rr > 1  + \epsilonreleasedexy) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr \le 1 + \epsilonreleasedexy) \land notReset \land validReset$
 \If{$isUpdate \lor isReset$}
-  \State $\sarb \gets (\tilde{t}, d, t')$
+  \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, t')$
+  \State \Return \textsc{true}
 \Else
-  \State $\sarb \gets \sarb$
+  \State \Return \textsc{false}
 \EndIf
 \end{algorithmic}
 \end{algorithm}
@@ -471,13 +493,16 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 \caption{FreeMint}\label{alg:freemint}
 \begin{algorithmic}[1]
   \Require $\soracle, \slp, \sbank, \sfree, \textrm{Basecoins } b, \textrm{Updated period end time } T', \textrm{Current time } t$
-  \State $(\tilde{t}, tilde{d}) \gets \sfree$
+  \State $(\tilde{t}, \tilde{d}) \gets \sfree$
+  \State $(R, \Sd) \gets \sbank$
+  \State $(B, D) \gets \slp$
+  \State $(\Pdt, F) \gets \soracle$  
   \State $\rr \gets \rr(\Pdt, \slp) $
   \State $\tilde{\Pdt} \gets \Pdt(1 + \phi_{\textrm{BANK}}^{\textrm{FREE}} + \phi_{O})$
   \State $isCounterReset \gets (t > \tilde{t})$ \Comment{If true, then the protocol is in a new FreeMint period.}
   \State $dexyMinted \gets \frac{b}{\tilde{\Pdt}}$
   \State $oracleFeeAmount \gets dexyMinted * \Pdt * \phi_{O}$
-  \State $\delta_{d} \gets \alpha_{\textrm{FREE}}\slp.D$ \Comment{Represents the maximum bank reserve growth during the FreeMint period.}
+  \State $\delta_{d} \gets \alpha_{\textrm{FREE}} D$ \Comment{Represents the maximum bank reserve growth during the FreeMint period.}
   \State $dexyAvailable \gets isCounterReset \textrm{ ? } \delta_{d} \textrm{ : } \tilde{d}$
   \State $validAmount \gets dexyMinted \le dexyAvailable$
   \If{$\lnot isCounterReset$}
@@ -492,16 +517,17 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \EndIf
   \State $validRatio \gets \rr \in (1-\epsilonfree, 1 + \epsilonfree)$
   \If{$validUpdate \land validRatio$}
-    \State $\sbank \gets \sbank + (b, dexyMinted)$
-    \State $\soracle \gets \soracle + (0, oracleFeeAmount)$
-    \State $\sfree \gets (t', dexyAvailable - dexyMinted)$
+    \State $\sbank \gets (R + b, \Sd + dexyMinted)$
+    \State $\soracle \gets (\Pdt, F + oracleFeeAmount)$
+    \State $\sfree \gets (T', dexyAvailable - dexyMinted)$
+    \State \Return \textsc{true}
   \Else
-    \State $\sbank \gets \sbank$
-    \State $\soracle \gets \soracle$
-    \State $\sfree \gets \sfree$
+    \State \Return \textsc{false}
   \EndIf
 \end{algorithmic}
 \end{algorithm}
+
+\newpage
 
 \subsubsection{ArbitrageMint}
 
@@ -509,13 +535,16 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 \caption{ArbMint}\label{alg:arbmint}
 \begin{algorithmic}[1]
   \Require $\soracle, \slp, \sbank, \sarb, \textrm{Basecoins } b, \textrm{Updated period end time } T', \textrm{Current time } t$
-  \State $(\tilde{t}, tilde{d}, \tilde{\tau}) \gets \sarb$
-  \State $\rr \gets \rr(\Pdt, \slp) $
+  \State $(\tilde{t}, \tilde{d}, \tilde{\tau}) \gets \sarb$
+  \State $(R, \Sd) \gets \sbank$
+  \State $(B, D) \gets \slp$
+  \State $(\Pdt, F) \gets \soracle$  
+  \State $\rr \gets \rr(\Pdt, \slp)$
   \State $\tilde{\Pdt} \gets \Pdt(1 + \phi_{\textrm{BANK}}^{\textrm{FREE}} + \phi_{O})$
   \State $isCounterReset \gets (t > \tilde{t})$ \Comment{If true, then the protocol is in a new ArbMint period.}
   \State $dexyMinted \gets \frac{b}{\tilde{\Pdt}}$
   \State $oracleFeeAmount \gets dexyMinted * \Pdt * \phi_{O}$
-  \State $\delta_{b} \gets \slp.B - \slp.D * \tilde{\Pdt}$
+  \State $\delta_{b} \gets B - D * \tilde{\Pdt}$
   \State $\delta_{d} \gets \frac{\delta_{b}}{\tilde{\Pdt}}$ \Comment{Represents the maximum bank reserve growth during the ArbMint period.}
   \State $dexyAvailable \gets isCounterReset \textrm{ ? } \delta_{d} \textrm{ : } \tilde{d}$
   \State $validAmount \gets dexyMinted \le dexyAvailable$
@@ -532,16 +561,17 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{ARB}}$
   \State $validRatio \gets \rr > 1 + \epsilonfree$
   \If{$validUpdate \land validDelay \land validRatio$}
-    \State $\sbank \gets \sbank + (b, dexyMinted)$
-    \State $\soracle \gets \soracle + (0, oracleFeeAmount)$
-    \State $\sarb \gets (T', dexyAvailable - dexyMinted)$
+    \State $\sbank \gets (R + b, \Sd + dexyMinted)$
+    \State $\soracle \gets (\Pdt, F + oracleFeeAmount)$
+    \State $\sarb \gets (T', dexyAvailable - dexyMinted, \tilde{\tau})$
+    \State \Return \textsc{true}
   \Else
-    \State $\sbank \gets \sbank$
-    \State $\soracle \gets \soracle$
-    \State $\sarb \gets \sarb$
+    \State \Return \textsc{false}
   \EndIf
 \end{algorithmic}
 \end{algorithm}
+
+\newpage 
 
 \subsubsection{InjectBasecoins}
 
@@ -552,6 +582,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \State $(\tilde{t}, \tilde{\tau}) \gets \sib$
   \State $(R, \Sd) \gets \sbank$
   \State $(B, D) \gets \slp$
+  \State $(\Pdt, F) \gets \soracle$
   \State $\slp' \gets (B + b, D)$
   \State $\rr \gets \rr(\Pdt, \slp) $
   \State $\rr' \gets \rr(\Pdt, \slp')$
@@ -564,20 +595,78 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \State $validAmounts \gets validAmount \land validRatio \land validInjectionRatio$
   \State $validTimes \gets validDelay \land validInjectionPeriod \land validUpdate$
   \If{$validAmounts \land validTimes$}
-    \State $\sbank \gets \sbank - (b, 0)$
-    \State $\slp \gets \slp + (b, 0)$
+    \State $\sbank \gets (R - b, \Sd)$
+    \State $\slp \gets (B + b, D)$
     \State $\sib \gets (t', \tilde{\tau})$
+    \State \Return \textsc{true}
   \Else
-    \State $\sbank \gets \sbank$
-    \State $\slp \gets \slp$
-    \State $\sib \gets \sib$
+    \State \Return \textsc{false}
   \EndIf
 \end{algorithmic}
 \end{algorithm}
 
+\newpage
+
 \subsubsection{ExtractDexy}
 
+\begin{algorithm}[H]
+\caption{ExtractDexy}\label{alg:extract-dexy}
+\begin{algorithmic}[1]
+  \Require $\soracle, \slp, \sburn, \textrm{Dexy } d, \textrm{Tx creation time } t', \textrm{Current time } t$
+  \State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}}) \gets \sburn$
+  \State $(B, D) \gets \slp$
+  \State $(\Pdt, F) \gets \soracle$
+  \State $\slp' \gets (B, D - d)$ \Comment{Removing Dexy from the liquidity pool.}
+  \State $\rr \gets \rr(\Pdt, \slp) $
+  \State $\rr' \gets \rr(\Pdt, \slp')$
+  \State $validRatio \gets \rr \le 1 - \epsilondexyzero < 1 - \epsilonfree$
+  \State $validExtractionRatio \gets \rr' \in \left[ 1-\epsilondexyone, 1 - \epsilonfree \right]$
+  \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{ED}}$
+  \State $validUpdate \gets t \le t' + \tautx$
+  \State $validAmounts \gets validRatio \land validExtractionRatio$
+  \State $validTimes \gets validDelay \land validUpdate$
+  \If{$validAmounts \land validTimes$}
+    \State $\slp \gets (B, D-d)$
+    \State $\sburn \gets (t', \tilde{t}_{\textrm{RD}}, d, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}})$
+    \State \Return \textsc{true}
+  \Else
+    \State \Return \textsc{false}
+  \EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
 \subsubsection{ReleaseDexy}
+
+\begin{algorithm}[H]
+\caption{ReleaseDexy}\label{alg:release-dexy}
+\begin{algorithmic}[1]
+  \Require $\soracle, \slp, \sburn, \textrm{Dexy } d, \textrm{Tx creation time } t', \textrm{Current time } t$
+  \State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}}) \gets \sburn$
+  \State $(B, D) \gets \slp$
+  \State $(\Pdt, F) \gets \soracle$
+  \State $\slp' \gets (B, D + d)$ \Comment{Adding Dexy back into the liquidity pool.}
+  \State $\rr \gets \rr(\Pdt, \slp) $
+  \State $\rr' \gets \rr(\Pdt, \slp')$
+  \State $validRatio \gets \rr \in \left(1 + \epsilonreleasedexy , 1 + \epsilonfree\right)$
+  \State $validInjectionRatio \gets \rr' <  1 + \epsilonreleasedexy$
+  \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{RD}}$
+  \State $validUpdate \gets t \le t' + \tautx$
+  \State $validInjectionAmount \gets d \in \left(0, \tilde{d}\right]$
+  \State $validAmounts \gets validRatio \land validInjectionRatio \land validInjectionAmount$
+  \State $validTimes \gets validDelay \land validUpdate$
+  \If{$validAmounts \land validTimes$}
+    \State $\slp \gets (B, D+d)$
+    \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, t', \tilde{d}-d, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}})$
+    \State \Return \textsc{true}
+  \Else
+    \State \Return \textsc{false}
+  \EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
 
 \section{Worst Case Scenario and Bank Reserves}
 \label{sec:worst-case}
@@ -666,6 +755,21 @@ With second stabilization mechanism~(burning or extraction) in place, the price 
 \dx{} is also cautious about minting new \stc{}s, which could mean slow growth of the number of stablecoins issued. This could be inconvenient, especially for big players, but the protocol is focused on stability in the first place. 
 
 Please note that the liquidity pool is disincentivizing massive bank runs due to its constant-product nature. Actually, massive bank runs are simpler for the bank to resolve, in comparison to the slow drain of the worst-case scenario.
+
+\section{Related Works}
+\label{sec:related-works}
+
+% Talk about difference with Gluon/Djed design
+Both the Djed \cite{DjedICBC2023} and Gluon \cite{Gluon} protocols are considered as crypto-backed algorithmic stablecoins.
+This is due to the fact that in each one, the entire bank reserve it tokenized, using two tokens: stablecoins and reservecoins.
+Stablecoins represents the liabilities of the bank, while reservecoins represent the reserve surplus, i.e. equity, after the liabilities are
+accounted for.
+
+With this perspective in mind, we can view the Dexy protocol as a variant of the Djed and Gluon protocols. The Dexy 
+stablecoins minted by the bank represent its liabilities. Instead of having reservecoins used to tokenize the bank equity, which 
+can be minted by users, we can consider the bank as having one reservecoin all to itself. This reflects the fact that users cannot
+redeem their stablecoins from the bank and that the bank is liable to know one, wherein reserves can be less than liabilities during
+bank interventions into the liquidity pool.
 
 \section{Implementations}
 \label{sec:implementations}
