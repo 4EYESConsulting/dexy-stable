@@ -107,7 +107,7 @@ Section \ref{sec:implementations} describes \dx{} implementations: the gold-pegg
 \section{\dx{} Design}
 \label{sec:design}
 
-The \dx protocol functions via an algorithmic central bank that holds reserves in basecoins and mints stablecoins. 
+The \dx{} protocol functions via an algorithmic central bank that holds reserves in basecoins and mints stablecoins. 
 A corresponding liquidity pool exists where stablecoins and basecoins can be traded. 
 The peg price used by the bank is provided by an oracle, which is assumed to be trusted and reliable. 
 Users can interact with both the bank and the liqudity pool, but certain rules and restrictions are applied to control 
@@ -121,7 +121,7 @@ which we also call the reference reserve ratio.
 
 The reference market is implemented as an automated market maker (e.g. \cite{xu2021sok}). 
 For simplicity, a modified constant-product automated market maker (CP-AMM) is used, 
-similar to ErgoDex \cite{ErgoDex} and UniSwap \cite{Uniswap}. This means that the liqudity pools holds a pair of 
+similar to ErgoDex \cite{ErgoDex} and UniSwap \cite{Uniswap}. This means that the liqudity pool holds a pair of 
 basecoins and stablecoins such that the product of their amounts remains invariant before and after a trade. 
 Users who function as liquidity providers can provide a pair of basecoins and stablecoins to obtain a corresponding amount of LP tokens.
 These LP tokens can later be deposited to withdraw their initial liquidity pair deposit plus accumulated fees from trading. 
@@ -147,7 +147,7 @@ Under certain conditions, the bank can intervene into the liquidity pool to cont
 In general, for any DeFi protocol involving user funds, it is important for trust assumptions to be explicitly stated so 
 that users can make informed decisions to the best of their ability.
 
-The \dx protocol has two:
+The \dx{} protocol has two:
 
 \begin{itemize}
   \item{Oracle:} The protocol assumes the target price oracle is reliable. This trust assumption is unavoidable, however, 
@@ -508,7 +508,7 @@ to the blockchain for inclusion.
 \caption{UpdateExtractDexy}\label{alg:update-extract-dexy}
 \begin{algorithmic}[1]
 \Require $\soracle, \slp, \sburn, \textrm{Update time } t', \textrm{Current time } t$
-\State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}}) \gets \sburn$
+\State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}}) \gets \sburn$
 \State $(\Pdt, F) \gets \soracle$ 
 \State $\rr \gets \rr(\Pdt, \slp)$
 \State $notUpdated \gets (\tau == \infty)$
@@ -518,7 +518,7 @@ to the blockchain for inclusion.
 \State $isUpdate \gets (\rr \le 1 - \epsilondexyzero) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr > 1 - \epsilondexyzero) \land notReset \land validReset$
 \If{$isUpdate \lor isReset$}
-  \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, t', \tilde{\tau_{\textrm{RD}}})$
+  \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, t', \tilde{\tau}^{\textrm{RD}})$
   \State \Return \textsc{true}
 \Else
   \State \Return \textsc{false}
@@ -534,7 +534,7 @@ to the blockchain for inclusion.
 \caption{UpdateReleaseDexy}\label{alg:update-release-dexy}
 \begin{algorithmic}[1]
 \Require $\soracle, \slp, \sburn, \textrm{Update time } t', \textrm{Current time } t$
-\State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}}) \gets \sburn$
+\State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}}) \gets \sburn$
 \State $(\Pdt, F) \gets \soracle$ 
 \State $\rr \gets \rr(\Pdt, \slp)$
 \State $notUpdated \gets (\tau == \infty)$
@@ -544,7 +544,7 @@ to the blockchain for inclusion.
 \State $isUpdate \gets (\rr > 1  + \epsilonreleasedexy) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr \le 1 + \epsilonreleasedexy) \land notReset \land validReset$
 \If{$isUpdate \lor isReset$}
-  \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, t')$
+  \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}^{\textrm{ED}}, t')$
   \State \Return \textsc{true}
 \Else
   \State \Return \textsc{false}
@@ -578,11 +578,7 @@ to the blockchain for inclusion.
     \State $T' \gets \tilde{t}$
     \State $validUpdate \gets \textsc{true}$
   \Else 
-    \If{$T' \in [t + T_{\textrm{FREE}}, t + T_{\textrm{FREE}} + \tautx]$} \Comment{Checks new FreeMint period end time.}
-      \State $validUpdate \gets \textsc{true}$
-    \Else
-      \State $validUpdate \gets \textsc{false}$ 
-    \EndIf 
+    \State $validUpdate \gets T' \in [t + T_{\textrm{FREE}}, t + T_{\textrm{FREE}} + \tautx]$  \Comment{Checks new period end time.}
   \EndIf
   \State $validRatio \gets \rr \in (1-\epsilonfree, 1 + \epsilonfree)$
   \If{$validUpdate \land validRatio$}
@@ -621,11 +617,7 @@ to the blockchain for inclusion.
     \State $T' \gets \tilde{t}$
     \State $validUpdate \gets \textsc{true}$
   \Else 
-    \If{$T' \in [t + T_{\textrm{ARB}}, t + T_{\textrm{ARB}} + \tautx]$} \Comment{Checks new ArbMint period end time.}
-      \State $validUpdate \gets \textsc{true}$
-    \Else
-      \State $validUpdate \gets \textsc{false}$ 
-    \EndIf 
+    \State $validUpdate \gets T' \in [t + T_{\textrm{ARB}}, t + T_{\textrm{ARB}} + \tautx]$  \Comment{Checks new period end time.}
   \EndIf
   \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{ARB}}$
   \State $validRatio \gets \rr > 1 + \epsilonfree$
@@ -682,7 +674,7 @@ to the blockchain for inclusion.
 \caption{ExtractDexy}\label{alg:extract-dexy}
 \begin{algorithmic}[1]
   \Require $\soracle, \slp, \sburn, \textrm{Dexy } d, \textrm{Tx creation time } t', \textrm{Current time } t$
-  \State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}}) \gets \sburn$
+  \State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}}) \gets \sburn$
   \State $(B, D) \gets \slp$
   \State $(\Pdt, F) \gets \soracle$
   \State $\slp' \gets (B, D - d)$ \Comment{Removing Dexy from the liquidity pool.}
@@ -690,13 +682,13 @@ to the blockchain for inclusion.
   \State $\rr' \gets \rr(\Pdt, \slp')$
   \State $validRatio \gets \rr \le 1 - \epsilondexyzero < 1 - \epsilonfree$
   \State $validExtractionRatio \gets \rr' \in \left[ 1-\epsilondexyone, 1 - \epsilonfree \right]$
-  \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{ED}}$
+  \State $validDelay \gets t > \tilde{\tau}^{\textrm{ED}} + \tau_{\textrm{ED}}$
   \State $validUpdate \gets t \le t' + \tautx$
   \State $validAmounts \gets validRatio \land validExtractionRatio$
   \State $validTimes \gets validDelay \land validUpdate$
   \If{$validAmounts \land validTimes$}
     \State $\slp \gets (B, D-d)$
-    \State $\sburn \gets (t', \tilde{t}_{\textrm{RD}}, d, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}})$
+    \State $\sburn \gets (t', \tilde{t}_{\textrm{RD}}, d, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}})$
     \State \Return \textsc{true}
   \Else
     \State \Return \textsc{false}
@@ -712,7 +704,7 @@ to the blockchain for inclusion.
 \caption{ReleaseDexy}\label{alg:release-dexy}
 \begin{algorithmic}[1]
   \Require $\soracle, \slp, \sburn, \textrm{Dexy } d, \textrm{Tx creation time } t', \textrm{Current time } t$
-  \State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}}) \gets \sburn$
+  \State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}}) \gets \sburn$
   \State $(B, D) \gets \slp$
   \State $(\Pdt, F) \gets \soracle$
   \State $\slp' \gets (B, D + d)$ \Comment{Adding Dexy back into the liquidity pool.}
@@ -720,14 +712,14 @@ to the blockchain for inclusion.
   \State $\rr' \gets \rr(\Pdt, \slp')$
   \State $validRatio \gets \rr \in \left(1 + \epsilonreleasedexy , 1 + \epsilonfree\right)$
   \State $validInjectionRatio \gets \rr' <  1 + \epsilonreleasedexy$
-  \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{RD}}$
+  \State $validDelay \gets t > \tilde{\tau}^{\textrm{RD}} + \tau_{\textrm{RD}}$
   \State $validUpdate \gets t \le t' + \tautx$
   \State $validInjectionAmount \gets d \in (0, \tilde{d})$
   \State $validAmounts \gets validRatio \land validInjectionRatio \land validInjectionAmount$
   \State $validTimes \gets validDelay \land validUpdate$
   \If{$validAmounts \land validTimes$}
     \State $\slp \gets (B, D+d)$
-    \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, t', \tilde{d}-d, \tilde{\tau}_{\textrm{ED}}, \tilde{\tau_{\textrm{RD}}})$
+    \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, t', \tilde{d}-d, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}})$
     \State \Return \textsc{true}
   \Else
     \State \Return \textsc{false}
