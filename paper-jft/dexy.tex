@@ -64,50 +64,55 @@ the audit of the ErgoScript contracts.
 \maketitle
 
 \begin{abstract}
-We consider a new algorithmic stablecoin called Dexy, consisting of two assets: the base cryptocurrency, called the basecoin, and the stablecoin.
-The protocol consits of three components: a central bank, a secondary market in the form of a customized CP-AMM liquidity pool, and a trusted oracle. 
+We consider a new algorithmic stablecoin called Dexy consisting of three components: 
+a central bank, a secondary market in the form of a customized CP-AMM liquidity pool, and a trusted oracle. 
 The price of the stablecoin in the liquidity pool is stabilized, relative to the oracle price, via central bank interventions. 
+Users mint Dexy stablecoins from the bank using basecoins, the base cryptocurrency asset.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
-Due to the inherent volatility of cryptocurrency prices, algorithmic stablecoins naturally arose as their extension. The volatility is resolved 
-by pegging the stablecoin to an asset whose price is considered to be stable over long periods of time, e.g. gold. 
+Due to the inherent volatility of cryptocurrency prices, algorithmic stablecoins naturally arose as their extension 
+to address this problem. The volatility is resolved by pegging the stablecoin to an asset whose price is 
+considered to be stable over long periods of time, e.g. gold. 
 
 Having an asset with a stable value can be useful in many scenarios:
 \begin{itemize}
 \item Securing fundraising: a project can be sure that funds collected during fundraising will have stable value in the mid-to-long term.
-\item Doing business with predictable results: a shop can be sure that funds collected from sales will have roughly the same value when the shop is ordering goods from warehouses, otherwise, the shop may go bankrupt if its margin is to low to cover exchange rate fluctuations. 
+\item Doing business with predictable results: a shop can be sure that funds collected from sales will have roughly the same value when the shop is ordering goods from warehouses, otherwise, the shop may go bankrupt if its margins are to low to cover exchange rate fluctuations. 
 \item Shorting: when cryptocurrency prices are high, it is desirable for investors to rebalance their portfolio by increasing exposure to fiat currencies or real-world commodities. However, as fiat currencies and centralized exchanges impose significant risks, it would be better to buy fiat and commodity substitues in the form of stablecoins on decentralized exchanges.
 \item Lending and other decentralized finance applications: stability of collateral value is critical for many applications built on top of these services.
 \end{itemize}
 
-Centralized stablecoins, such as USDT and USDC, use a trusted party to ensure that the peg is maintained. For algorithmic stablecoins, the 
-peg can be maintained in different ways depending on the implementation, e.g. rebasement of the total supply \cite{Ampleforth}, 
+Centralized stablecoins, such as USDT and USDC, use a trusted party to ensure that the peg is maintained. For algorithmic stablecoins, 
+the peg can be maintained in different ways depending on the implementation, e.g. rebasement of the total supply \cite{Ampleforth}, 
 or via imitating a trusted party that holds reserves and then does market interventions for rebalancing the peg. 
 Imititating the trusted party is usually done by allowing anyone on the blockchain to create over-collateralized financial instruments, 
-such as collateralized debt positions \cite{DAI}, zero-coupon bonds (as was done in the failed Yield protocol), reserve assets \cite{DjedEprint,DjedICBC2023,Gluon}, 
-or by issuing stabilizing financial instruments in case of a depeg \cite{Neutrino}.
+such as collateralized debt positions \cite{DAI}, zero-coupon bonds (as was done in the failed Yield protocol), 
+reserve assets \cite{DjedEprint,DjedICBC2023,Gluon}, or by issuing stabilizing financial instruments in case of a depeg \cite{Neutrino}.
 
 In this work, we present \dx{}, a stablecoin protocol where an algorithmic central bank performs interventions when there is a depeg.
-The bank stabilizes the stablecoin value in the reference market, a liquidity pool, injecting basecoins from its reserves when the stablecoin price is below the peg. 
-In extreme cases, when bank reserves are depleted and the stablecoin price is still below the peg, the liquidity pool price is restored by extracting stablecoins, 
-which will be injected back again at a later time when the stablecoin price is above the peg by a certain threshold. 
-In some aspects, \dx{} could resemble Fei or Gyroscope \cite{Gyroscope}. 
+The bank stabilizes the stablecoin value in the reference market, a liquidity pool, by injecting basecoins from its reserves when the 
+stablecoin price is below the peg. In extreme cases, when bank reserves are depleted and the stablecoin price is still below the peg, 
+the liquidity pool price is restored by extracting stablecoins from it, these will be injected back again at a future time, 
+when the stablecoin price is above the peg by a certain threshold. In some aspects, \dx{} could resemble Fei or Gyroscope \cite{Gyroscope}. 
 
-The rest of the paper is organized as follows.  In Section \ref{sec:design}, the \dx{} design in general is explained, where important trust assumptions are stated and
-notation used in other sections is introduced. Section \ref{sec:worst-case} defines the worst-case scenario for the bank reserves, which implies for the stablecoin stability as well. 
+%TODO: Fix this paragraph after finishing all sections of the paper.
+The rest of the paper is organized as follows. In Section \ref{sec:design}, the \dx{} design in general is explained, 
+where important trust assumptions are stated and notation used in other sections is introduced. 
+Section \ref{sec:worst-case} defines the worst-case scenario for the bank reserves, and so the stablecoin stability as well. 
 In Section \ref{sec:rules}, the bank and liquidity pool rules are defined, where their stability is discussed in Section \ref{sec:stability}. 
 Section \ref{sec:implementations} describes \dx{} implementations: the gold-pegged DexyGold stablecoin and the USD-pegged USE stablecoin.
 
-\section{\dx Design}
+\section{\dx{} Design}
 \label{sec:design}
 
 The \dx protocol functions via an algorithmic central bank that holds reserves in basecoins and mints stablecoins. 
 A corresponding liquidity pool exists where stablecoins and basecoins can be traded. 
 The peg price used by the bank is provided by an oracle, which is assumed to be trusted and reliable. 
-Users can interact with both the bank and the liqudity pool, but certain rules and restrictions are applied to control the price stability.
-Central bank interventions are determined by the ratio of the liquidity pool price to the oracle price, $r$, which we also call the reference reserve ratio. 
+Users can interact with both the bank and the liqudity pool, but certain rules and restrictions are applied to control 
+the price stability. Central bank interventions are determined by the ratio of the liquidity pool price to the oracle price, $\rr$, 
+which we also call the reference reserve ratio. 
 
 %TODO: Insert fig from workshop presentation.
 
@@ -115,10 +120,11 @@ Central bank interventions are determined by the ratio of the liquidity pool pri
 \label{subsec:pool}
 
 The reference market is implemented as an automated market maker (e.g. \cite{xu2021sok}). 
-For simplicity, a modified constant-product automated market maker (CP-AMM) is used, similar to ErgoDex \cite{ErgoDex} and UniSwap \cite{Uniswap}. 
-This means that the liqudity pools holds a pair of basecoins and stablecoins such that the product of their amounts remains invariant before and after a trade. 
+For simplicity, a modified constant-product automated market maker (CP-AMM) is used, 
+similar to ErgoDex \cite{ErgoDex} and UniSwap \cite{Uniswap}. This means that the liqudity pools holds a pair of 
+basecoins and stablecoins such that the product of their amounts remains invariant before and after a trade. 
 Users who function as liquidity providers can provide a pair of basecoins and stablecoins to obtain a corresponding amount of LP tokens.
-These LP tokens can later be deposited to obtain the initial liquidity pair deposit plus accumulated fees from trading. 
+These LP tokens can later be deposited to withdraw their initial liquidity pair deposit plus accumulated fees from trading. 
 A fee is charged to liqudity providers to prevent excessive liquidity withdrawals.
 
 %TODO: Insert fig from workshop presentation.
@@ -128,7 +134,7 @@ A fee is charged to liqudity providers to prevent excessive liquidity withdrawal
 
 By depositing basecoins into the bank, users can mint stablecoins. 
 The price provided by the bank will always equal the oracle price. 
-A fee is charged so the bank reserves can increase faster.
+A fee is charged so the bank reserves can increase faster, along with a fee for the oracle usage.
 Under certain conditions, the bank can intervene into the liquidity pool to control its price relative to the oracle price.
 
 %TODO: Insert fig from workshop presentation.
@@ -138,52 +144,107 @@ Under certain conditions, the bank can intervene into the liquidity pool to cont
 \subsection{Trust Assumptions}
 \label{subsec:kya}
 
-In general, for any DeFi protocol involving user funds, it is important for trust assumptions to be explicitly stated so that users can make informed decisions to the best of their ability.
+In general, for any DeFi protocol involving user funds, it is important for trust assumptions to be explicitly stated so 
+that users can make informed decisions to the best of their ability.
+
 The \dx protocol has two:
 
 \begin{itemize}
-  \item{Oracle:} The protocol assumes the target price oracle is reliable. This trust assumption is unavoidable; however, it can be relaxed by using a federation of oracles that produces an average price 
-  to be delivered to the central bank, instead of relying on a single entity. In any case, it is important that oracles are rewarded from protocol usage, 
+  \item{Oracle:} The protocol assumes the target price oracle is reliable. This trust assumption is unavoidable, however, 
+  it can be relaxed by using a federation of oracles that produces an average price to be delivered to the central bank, 
+  instead of relying on a single entity. In any case, it is important that oracles are rewarded from protocol usage, 
   otherwise, they will be incentivized to adversarially attack the protocol, see Section \ref{subsec:oracle} for details.
 
-  \item{No governance:} Unlike most stablecoin protocols, we do not consider governance, as it can be used to adversarially attack the protocol. 
-  We suppose that real-world instantiations that do have it should clearly state their governance-related trust assumptions.
+  \item{No governance:} Unlike most stablecoin protocols, we do not consider governance, as it can be used to 
+  adversarially attack the protocol. We suppose that real-world instantiations that do have it should clearly state their 
+  governance-related trust assumptions.
 \end{itemize}
 
 \subsection{Actions and Dynamics}
 \label{subsec:actions}
 
-The following table shows the different actions in the protocol, the $r$ range when the action happens, and the restored $r'$ range after the action happens.
+The following table summarizes the different actions in the protocol, the $\rr$ range when the action happens, and the restored $\rr'$ range after the action happens.
 
 \begin{table}[h]
 \begin{tabular}{|l|l|l|}
 \hline
-\multicolumn{1}{|c|}{\textbf{Action}} & \multicolumn{1}{c|}{\textbf{Range}}                                   & \multicolumn{1}{c|}{\textbf{Restore Range}}                                                         \\ \hline
-FreeMint                              & $1- \epsilon_{\textrm{FREE}} \le r \le 1+ \epsilon_{\textrm{FREE}}$   & \multicolumn{1}{c|}{-}                                                                              \\ \hline
-ArbitrageMint                         & $r > 1 + \epsilon_{\textrm{FREE}}$                                    & \multicolumn{1}{c|}{-}                                                                              \\ \hline
-InjectBasecoins                       & $r < 1 - \epsilon_{\textrm{FREE}}$                                    & $1 - \epsilon_{\textrm{FREE}} \le r' \le 1-\epsilon_{\textrm{IB}}$                                  \\ \hline
-ExtractDexy                           & $r \le 1 - \epsilon_{\textrm{ED}}^{0} < 1 - \epsilon_{\textrm{FREE}}$ & $1 - \epsilon_{\textrm{ED}}^{0} + \epsilon_{\textrm{ED}}^{1} \le r' \le 1-\epsilon_{\textrm{FREE}}$ \\ \hline
-ReleaseDexy                           & $1 + \epsilon_{\textrm{RD}} < r <  1 + \epsilon_{\textrm{FREE}}$      & $r' \ge 1 + \epsilon_{\textrm{RD}}$                                                                  \\ \hline
+\multicolumn{1}{|c|}{\textbf{Action}} & \multicolumn{1}{c|}{\textbf{Range}}                                     & \multicolumn{1}{c|}{\textbf{Restore Range}}                                                           \\ \hline
+FreeMint                              & $1- \epsilon_{\textrm{FREE}} \le \rr \le 1+ \epsilon_{\textrm{FREE}}$   & \multicolumn{1}{c|}{-}                                                                                \\ \hline
+ArbitrageMint                         & $\rr > 1 + \epsilon_{\textrm{FREE}}$                                    & \multicolumn{1}{c|}{-}                                                                                \\ \hline
+InjectBasecoins                       & $\rr < 1 - \epsilon_{\textrm{FREE}}$                                    & $1 - \epsilon_{\textrm{FREE}} \le \rr' \le 1-\epsilon_{\textrm{IB}}$                                  \\ \hline
+ExtractDexy                           & $\rr \le 1 - \epsilon_{\textrm{ED}}^{0} < 1 - \epsilon_{\textrm{FREE}}$ & $1 - \epsilon_{\textrm{FREE}} - \epsilon_{\textrm{ED}}^{1} \le \rr' \le 1-\epsilon_{\textrm{FREE}}$   \\ \hline
+ReleaseDexy                           & $1 + \epsilon_{\textrm{RD}} < \rr <  1 + \epsilon_{\textrm{FREE}}$      & $\rr' \ge 1 + \epsilon_{\textrm{RD}}$                                                                 \\ \hline
+StoppedWithdrawals                    & $\rr < 1 - \epsilon_{\textrm{FREE}}$                                    & \multicolumn{1}{c|}{-}                                                                  \\ \hline
 \end{tabular}
 \end{table}
 
-% We now go over at a high-level what happens during each action. For more technical details, refer to section $\ref{sec:protocol}$.
+We now give a high-level description of what happens during each action. For more technical details, refer to section $\ref{sec:protocol}$.
 
-% \subsubsection{FreeMint}
-%   \begin{itemize}
-%     \item  User can mint from the bank up
-%   \end{itemize}
-% \subsubsection{ArbitrageMint}
-% \subsubsection{InjectBasecoins}
-% \subsubsection{ExtractDexy}
-% \subsubsection{ReleaseDexy}
+\subsubsection{FreeMint}
+  \begin{itemize}
+    \item $\rr$ is bounded within the range $1- \epsilon_{\textrm{FREE}} \le \rr \le 1+ \epsilon_{\textrm{FREE}}$.
+    \item If bounded within the range, then minting can occur for a fixed period of time $T_{\textrm{FREE}}$.
+    \item Users can mint from the bank up to a maximum amount determined by the Dexy volume in the liquidity pool at the beginning
+    \item The bank charges a fee so the bank reserves can increase faster.
+    \item \textbf{Consequence:} Increase bank reserves and stablecoin supply when the pool price is considered stable.
+  \end{itemize}
+  
+\subsubsection{ArbitrageMint}
+  \begin{itemize}
+    \item $\rr$ is greater than $1 + \epsilon_{\textrm{FREE}}$.
+    \item The $\rr$ is above the threshold for an amount of time greater than $\tau_{\textrm{ARB}}$.
+    \item The liquidity pool and oracle price difference determines the max amount of stablecoins the bank can mint and 
+          the corresponding max amount of basecoins it will accept.
+    \item The bank charges a fee so the bank reserves can increase faster.
+    \item \textbf{Consequence:} Purchase stablecoins from the bank at a discount and sell them to the liquidity pool at premium, 
+    increasing the liquidity pool stablecoin supply.
+  \end{itemize}
+
+\subsubsection{InjectBasecoins}
+  \begin{itemize}
+    \item $\rr$ is less than $1 - \epsilon_{\textrm{FREE}}$.
+    \item The $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{IB}}$.
+    \item The bank still has basecoin reserves.
+    \item The bank will inject basecoins from its reserves into the liquidity pool 
+          until the new $\rr$ is within the range $1 - \epsilon_{\textrm{FREE}} \le \rr' \le 1-\epsilon_{\textrm{IB}}$.
+    \item The amount of basecoins injected is a fixed percentage $\alpha_{\textrm{FREE}}$ of the banks total basecoin reserve.
+    \item \textbf{Consequence:} The bank's basecoins reserves decrease and the liquidity pool price recovers.
+  \end{itemize}
+
+\subsubsection{ExtractDexy}
+  \begin{itemize}
+    \item $\rr$ is less than $1 - \epsilon_{\textrm{ED}}^{0} < 1 - \epsilon_{\textrm{FREE}}$.
+    \item $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{ED}} << \tau_{\textrm{IB}}$
+    \item The bank has no more basecoin reserves.
+    \item The bank will extract stablecoins from the liquidity pool until the new $\rr$ is in 
+          the range $1 - \epsilon_{\textrm{FREE}} - \epsilon_{\textrm{ED}}^{1} \le \rr' \le 1-\epsilon_{\textrm{FREE}}$, 
+          so essentially the stopped-withdrawl state, and then lock them to be released at a future time.
+    \item \textbf{Consequence:} The bank removes stablecoins from the liquidity pool and the liquidity pool price recovers.
+  \end{itemize}
+
+\subsubsection{ReleaseDexy}
+  \begin{itemize}
+    \item $\rr$ is within the range $1 + \epsilon_{\textrm{RD}} < \rr <  1 + \epsilon_{\textrm{FREE}}$.
+    \item $\rr$ is within the range for an amount of time greater than $\tau_{\textrm{RD}}$.
+    \item The bank will release the locked stablecoins back into the liquidity pool until the new $\rr$ is greater than or equal to $1 + \epsilon_{\textrm{RD}}$
+    \item \textbf{Consequence:} The bank releases stablecoins back into the liquidity pool such that it is prioritized over arbitrage minting.
+  \end{itemize}
+
+\subsubsection{StoppedWithdrawals}
+  \begin{itemize}
+    \item $\rr$ is less than $1 - \epsilon_{\textrm{FREE}}$.
+    \item Liquidity pair withdrawals are stopped without delay once the $\rr$ intervention threshold is met.
+    \item Only swaps between basecoins and stablecoins is allowed.
+    \item \textbf{Consequence:} Liquidity providers, i.e. LP token holders, cannot withdraw their liquidity pair from the liquidity pool to prevent further price depegging.
+  \end{itemize}
 
 \section{Protocol Specification}
 \label{sec:protocol}
-We now describe the \dx{} protocol specification, which includes immutable paramters and state variables. We note the distinction between an action period, 
-which measures how long the bank is in a particular state, and a corresponding action bank delay, which measures how long before a bank action can be performed, 
-i.e. the delay before the start of the first bank action period. For a particular bank action, there may be multiple periods before a new delay is required.
-Whether or not these are set to be equal is an implementation decision.
+We now describe the \dx{} protocol specification, which includes immutable protocol paramters and state variables. 
+We note the distinction between an action period, which measures how long the bank is in a particular state, 
+and a corresponding action bank delay, which measures how long before a bank action can be performed, 
+i.e. the delay before the start of the first bank action period. For a particular bank action, 
+there may be multiple periods before a new delay is required. Whether or not these are set to be equal is an implementation decision.
 % \begin{itemize}
 %   \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
 %   \item{} $p$ - basecoin price reported by the oracle at the moment (e.g. 20 USD per ERG, note, however, that the price provided by the oracle will usually be in units of $\frac{\mathrm{basecoin}}{\mathrm{stablecoin}}$, representing the price of the stablecoin in units of basecoins).
@@ -208,7 +269,7 @@ Whether or not these are set to be equal is an implementation decision.
 %   \item RD is the release-dexy action.
 % \end{itemize}
 
-The central bank parameters is a tuple $C_{\textrm{BANK}}$ of:
+The central bank parameters are a tuple $C_{\textrm{BANK}}$ of:
 $$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB}}, \epsilon_{\textrm{FREE}}, \epsilon_{\textrm{IB}}, \epsilon_{\textrm{ED}}^{0}, \epsilon_{\textrm{ED}}^{1}, \epsilon_{\textrm{RD}}, T_{\textrm{FREE}}, T_{\textrm{ARB}}, T_{\textrm{IB}},  \tau_{\textrm{IB}}, \tau_{\textrm{ED}}, \tau_{\textrm{RD}}, \tau_{\textrm{TX}}, \alpha_{\textrm{FREE}}, \alpha_{\textrm{IB}}  \right)$$
 
 \begin{itemize}
@@ -302,14 +363,14 @@ $$s_{\textrm{IB}} = \left(t, \tau\right)$$
 \end{itemize}
 
 The ExtractDexy and ReleaseDexy actions share the following state:
-$$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{ED}}, \tau_{\textrm{RD}} \right)$$
+$$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau^{\textrm{ED}}, \tau^{\textrm{RD}} \right)$$
 
 \begin{itemize}
   \item $t_{\textrm{ED}} \in \mathbb{R}_{>0}$ is the time when the previous extract-dexy action occurred.
   \item $t_{\textrm{RD}} \in \mathbb{R}_{>0}$ is the time when the previous release-dexy action occurred.
   \item $d \in \mathbb{R}_{\ge 0}$ is the remaining dexy amount to be released.
-  \item $\tau_{\textrm{ED}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r \le 1 - \epsilon_{\textrm{ED}}^{0}$. 
-  \item $\tau_{\textrm{RD}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{RD}}$.  
+  \item $\tau^{\textrm{ED}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r \le 1 - \epsilon_{\textrm{ED}}^{0}$. 
+  \item $\tau^{\textrm{RD}} \in \mathbb{R}_{>0}\cup\{\infty\}$ is the time when $r > 1 + \epsilon_{\textrm{RD}}$.  
 \end{itemize}
 
 \subsection{Auxiliary Definitions}
@@ -358,6 +419,16 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
 \newpage
 
 \subsection{State Update Procedures}
+
+In order to perform each bank action, we must know both the current value of $\rr$ but also when
+the transition from one region to another occurred. The following state update procedures ensure
+that the bank always has the accurate state information available before any bank action is performed.
+The procedures are meant to be continuously running, checking which bank action states can be updated
+according to whatever value the $\rr$ has. 
+
+In practice, on eUTxO blockchains, these procedures are validators, such that if they evaluate to $\textsc{true}$,
+then the corresponding transaction built to update the state can be accepted by a node and successfully submitted 
+to the blockchain for inclusion.
 
 \subsubsection{UpdateArbitrageMint}
 
@@ -500,7 +571,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \State $isCounterReset \gets (t > \tilde{t})$ \Comment{If true, then the protocol is in a new FreeMint period.}
   \State $dexyMinted \gets \frac{b}{\tilde{\Pdt}}$
   \State $oracleFeeAmount \gets dexyMinted * \Pdt * \phi_{O}$
-  \State $\delta_{d} \gets \alpha_{\textrm{FREE}} D$ \Comment{Represents the maximum bank reserve growth during the FreeMint period.}
+  \State $\delta_{d} \gets \alpha_{\textrm{FREE}} * D$ \Comment{Represents the maximum bank reserve growth during the FreeMint period.}
   \State $dexyAvailable \gets isCounterReset \textrm{ ? } \delta_{d} \textrm{ : } \tilde{d}$
   \State $validAmount \gets dexyMinted \le dexyAvailable$
   \If{$\lnot isCounterReset$}
@@ -651,7 +722,7 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau_{\textrm{E
   \State $validInjectionRatio \gets \rr' <  1 + \epsilonreleasedexy$
   \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{RD}}$
   \State $validUpdate \gets t \le t' + \tautx$
-  \State $validInjectionAmount \gets d \in \left(0, \tilde{d}\right]$
+  \State $validInjectionAmount \gets d \in (0, \tilde{d})$
   \State $validAmounts \gets validRatio \land validInjectionRatio \land validInjectionAmount$
   \State $validTimes \gets validDelay \land validUpdate$
   \If{$validAmounts \land validTimes$}
