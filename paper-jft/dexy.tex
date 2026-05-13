@@ -244,7 +244,7 @@ We now describe the \dx{} protocol specification, which includes immutable proto
 We note the distinction between an action period, which measures how long the bank is in a particular state, 
 and a corresponding action bank delay, which measures how long before a bank action can be performed, 
 i.e. the delay before the start of the first bank action period. For a particular bank action, 
-there may be multiple periods before a new delay is required. Whether or not these are set to be equal is an implementation decision.
+there may be multiple periods before a new delay is required.
 % \begin{itemize}
 %   \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
 %   \item{} $p$ - basecoin price reported by the oracle at the moment (e.g. 20 USD per ERG, note, however, that the price provided by the oracle will usually be in units of $\frac{\mathrm{basecoin}}{\mathrm{stablecoin}}$, representing the price of the stablecoin in units of basecoins).
@@ -660,7 +660,7 @@ to the blockchain for inclusion.
   \State $\slp' \gets (B + b, D)$
   \State $\rr \gets \rr(\Pdt, \slp) $
   \State $\rr' \gets \rr(\Pdt, \slp')$
-  \State $validAmount \gets b \le \alpha_{\textrm{IB}} * \Sd$
+  \State $validAmount \gets b \le \alpha_{\textrm{IB}} * R$
   \State $validRatio \gets \rr < 1 - \epsilonfree$
   \State $validInjectionRatio \gets \rr' \in \left[ 1-\epsilonfree, 1 - \epsilonib \right]$
   \State $validDelay \gets t > \tilde{\tau} + \tau_{\textrm{IB}}$
@@ -767,59 +767,59 @@ Summing $E_1$ and $E_2$, we obtain the basecoin reserves the bank should have to
 
 This scenario is the worst-case for the bank~(and only the bank) because it is buying all of the external $O$ $\stc{}$ at the worst possible price $s$, and also sets the new price by burning its own reserves only.  
 
-\section{Bank and Pool Rules}
-\label{sec:rules}
+% \section{Bank and Pool Rules}
+% \label{sec:rules}
 
-Based on needed reserves for worst-case scenario estimation, we can consider minting rules accordingly. Similarly to SigUSD \cite{SigUSD} (a Djed instantiation on the Ergo blockchain), we can, for example, target for security in case of a
-4x price drop, so to consider $R = \frac{p}{s} = 4$. 
-We can also allow minting of \stc{}s~while there are enough, so not less than $E_w$, basecoins in reserves. However, in this case, the \stc{} would be non-mintable most of the time, and only during moments of basecoin price going up significantly will it be possible to mint \dx{}. As worst-case scenario is based on unrealistic assumptions, unlikely a realistic protocol can be built on top of it.  
+% Based on needed reserves for worst-case scenario estimation, we can consider minting rules accordingly. Similarly to SigUSD \cite{SigUSD} (a Djed instantiation on the Ergo blockchain), we can, for example, target for security in case of a
+% 4x price drop, so to consider $R = \frac{p}{s} = 4$. 
+% We can also allow minting of \stc{}s~while there are enough, so not less than $E_w$, basecoins in reserves. However, in this case, the \stc{} would be non-mintable most of the time, and only during moments of basecoin price going up significantly will it be possible to mint \dx{}. As worst-case scenario is based on unrealistic assumptions, unlikely a realistic protocol can be built on top of it.  
 
-Thus, we leave worst-case scenario for UI, so dapps implemented to interact with the \dx{} protocol may show, for example, collateralization for the worst-case scenario. Having on-chain data analysis, more precise estimations of reserve quality can be made~(by considering \stc{}s locked in DeFi protocols or stablecoins likely forgotten in wallets).
+% Thus, we leave worst-case scenario for UI, so dapps implemented to interact with the \dx{} protocol may show, for example, collateralization for the worst-case scenario. Having on-chain data analysis, more precise estimations of reserve quality can be made~(by considering \stc{}s locked in DeFi protocols or stablecoins likely forgotten in wallets).
 
-Instead, we always allow for cautious minting. That is, we allow minting when oracle price is above pool's price~(so the bank provides liquidity for arbitrage when the \stc{} price is above the peg), or we allow to mint a little bit (per some time period) when liquidity pool is in good shape. In details, we have two following minting operations, with minting price being the oracle's price $p$:  
+% Instead, we always allow for cautious minting. That is, we allow minting when oracle price is above pool's price~(so the bank provides liquidity for arbitrage when the \stc{} price is above the peg), or we allow to mint a little bit (per some time period) when liquidity pool is in good shape. In details, we have two following minting operations, with minting price being the oracle's price $p$:  
 
-\begin{itemize}
-  \item {Arbitrage mint:} if price reported by the oracle is higher than in the pool, i.e. $p > \frac{u}{e}$, we allow to print enough \stc{} tokens to bring the price to $p$. That is, the bank allows to mint up to $\delta_u = \sqrt{p*e*u}-u$ \stc{} by accepting up to $\delta_e = \frac{\delta_u}{p}$ basecoins into reserves. 
+% \begin{itemize}
+%   \item {Arbitrage mint:} if price reported by the oracle is higher than in the pool, i.e. $p > \frac{u}{e}$, we allow to print enough \stc{} tokens to bring the price to $p$. That is, the bank allows to mint up to $\delta_u = \sqrt{p*e*u}-u$ \stc{} by accepting up to $\delta_e = \frac{\delta_u}{p}$ basecoins into reserves. 
   
-    \emph{To instantiate the rule, we can allow for arbitrage minting if the price $p$ is more than $\frac{u}{e}$ by at least $1\%$ for time period $T_{arb}$ (e.g. 1 hour), with the bank charging $0.5\%$ fee for the operation. After arbitrage mint, it is not possible to do another one within 30 minutes, in order to prevent aggressive liquidity minting via chained transactions.}
+%     \emph{To instantiate the rule, we can allow for arbitrage minting if the price $p$ is more than $\frac{u}{e}$ by at least $1\%$ for time period $T_{arb}$ (e.g. 1 hour), with the bank charging $0.5\%$ fee for the operation. After arbitrage mint, it is not possible to do another one within 30 minutes, in order to prevent aggressive liquidity minting via chained transactions.}
 
-  \item {Free mint:} we allow to mint up to $\frac{u}{100}$ \stc{}s within time period $T_{free}$. 
+%   \item {Free mint:} we allow to mint up to $\frac{u}{100}$ \stc{}s within time period $T_{free}$. 
 
-    \emph{To instantiate the rule, we propose to allow for free mint if $0.98 < r < 1.02$. Minting fee in this case is also $0.5\%$. We propose to set $T_{free}$ to $12$ hours, then bank reserves can grow by $2\%$ of LP volume per day when the peg is okay.}
-\end{itemize}
+%     \emph{To instantiate the rule, we propose to allow for free mint if $0.98 < r < 1.02$. Minting fee in this case is also $0.5\%$. We propose to set $T_{free}$ to $12$ hours, then bank reserves can grow by $2\%$ of LP volume per day when the peg is okay.}
+% \end{itemize}
 
-In addition to minting actions, which increase the bank reserves, we define the following action which decreases the bank reserves, but functions as the first stabilization mechanism: 
+% In addition to minting actions, which increase the bank reserves, we define the following action which decreases the bank reserves, but functions as the first stabilization mechanism: 
 
-\begin{itemize}
-   \item{Intervention:} if the price reported by the oracle is lower than the pool price by a significant enough margin, i.e. $r = \frac{p*e}{u}$ is less than or equal to some constant that is set as a protocol parameter, then the bank will provide enough basecoins to restore the pool price to the oracle price.
+% \begin{itemize}
+%    \item{Intervention:} if the price reported by the oracle is lower than the pool price by a significant enough margin, i.e. $r = \frac{p*e}{u}$ is less than or equal to some constant that is set as a protocol parameter, then the bank will provide enough basecoins to restore the pool price to the oracle price.
    
-   \emph{To instantiate the rule, we propose to allow the bank to intervene if $r \le 0.98$ for time period $T_{int} = 1 {\ day}$.
-       During the intervention, the period is reset, so another intervention will only occur after $T_{int} = 1 {\ day}$ at least. The bank will provide enough basecoins to get the pool price
-       price to 99.5\% of the oracle price max, but making sure to not spend more than 1\% of its reserves for that.}
-\end{itemize}
+%    \emph{To instantiate the rule, we propose to allow the bank to intervene if $r \le 0.98$ for time period $T_{int} = 1 {\ day}$.
+%        During the intervention, the period is reset, so another intervention will only occur after $T_{int} = 1 {\ day}$ at least. The bank will provide enough basecoins to get the pool price
+%        price to 99.5\% of the oracle price max, but making sure to not spend more than 1\% of its reserves for that.}
+% \end{itemize}
 
-We also state following rules for the liquidity pool (which, otherwise, acts as an ordinary CP-AMM liquidity pool): 
+% We also state following rules for the liquidity pool (which, otherwise, acts as an ordinary CP-AMM liquidity pool): 
 
-\begin{itemize}
-   \item{Stopping withdrawals:} if $r$ is below some threshold, withdrawals from liquidity providers are stopped (i.e. liquidity providers cannot redeem their LP tokens for basecoins/stablecoins), so only swaps between basecoins and stablecoins are possible.  
+% \begin{itemize}
+%    \item{Stopping withdrawals:} if $r$ is below some threshold, withdrawals from liquidity providers are stopped (i.e. liquidity providers cannot redeem their LP tokens for basecoins/stablecoins), so only swaps between basecoins and stablecoins are possible.  
    
-   \emph{To instantiate the rule, we propose to stop withdrawals immediately if $r \le 0.98$.}
+%    \emph{To instantiate the rule, we propose to stop withdrawals immediately if $r \le 0.98$.}
 
-   \item{Second stabilization mechanism:} what if the bank is out of reserves, but the basecoin price in the liquidity pool is still above the oracle basecoin price? In this case we restore price in the pool by removing liquidity, and there are two possible options here:
+%    \item{Second stabilization mechanism:} what if the bank is out of reserves, but the basecoin price in the liquidity pool is still above the oracle basecoin price? In this case we restore price in the pool by removing liquidity, and there are two possible options here:
 
-   \begin{enumerate}
-   \item{Burn:} if the bank if empty, and $r$ is below some threshold, it is allowed to burn \stc{}s in the pool. 
+%    \begin{enumerate}
+%    \item{Burn:} if the bank if empty, and $r$ is below some threshold, it is allowed to burn \stc{}s in the pool. 
    
-   \emph{To instantiate the rule, we propose to burn \stc{} if $r \le 0.95$ for a time period $T_{burn}$. $T_{burn}$ must be quite big, e.g. $1 {\ week}$. We burn enough stablecoins to return to the state of stopped withdrawals, so to $r = 0.98$. After burning, the period is reset, so another burn will be done only after $T_{burn}$ amount of time at least.}
+%    \emph{To instantiate the rule, we propose to burn \stc{} if $r \le 0.95$ for a time period $T_{burn}$. $T_{burn}$ must be quite big, e.g. $1 {\ week}$. We burn enough stablecoins to return to the state of stopped withdrawals, so to $r = 0.98$. After burning, the period is reset, so another burn will be done only after $T_{burn}$ amount of time at least.}
 
-   \item{Extract for the future:} if the bank is empty and $r$ is below some threshold, it is allowed to extract \stc{}s from the pool and lock them in a contract, only to be released in the future when the \stc{} price is above the stablecoin oracle price (i.e. the inverse of the basecoin price peg).
+%    \item{Extract for the future:} if the bank is empty and $r$ is below some threshold, it is allowed to extract \stc{}s from the pool and lock them in a contract, only to be released in the future when the \stc{} price is above the stablecoin oracle price (i.e. the inverse of the basecoin price peg).
    
-   \emph{To instantiate the rule, we propose to extract \stc{}s if $r \le 0.95$ for time period $T_{burn}$ (so the same as in burn). 
-   To prioritize extracted funds over arbitrage mint, we do not have delay in releasing contract. We burn enough to return to the state of stopped withdrawals, so close to $r = 0.98$~(exactly, $0.97 \le r \le 0.98$). After extraction, the period is reset, so another extraction will be done after $T_{burn}$ amount of time at least.}
-   \end{enumerate}
-\end{itemize} 
+%    \emph{To instantiate the rule, we propose to extract \stc{}s if $r \le 0.95$ for time period $T_{burn}$ (so the same as in burn). 
+%    To prioritize extracted funds over arbitrage mint, we do not have delay in releasing contract. We burn enough to return to the state of stopped withdrawals, so close to $r = 0.98$~(exactly, $0.97 \le r \le 0.98$). After extraction, the period is reset, so another extraction will be done after $T_{burn}$ amount of time at least.}
+%    \end{enumerate}
+% \end{itemize} 
 
-In addition, we introduce a large enough redemption fee for liquidity providers to avoid excessive liquidity hopping, e.g. $2\%$.
+% In addition, we introduce a large enough redemption fee for liquidity providers to avoid excessive liquidity hopping, e.g. $2\%$.
 
 \section{Stability}
 \label{sec:stability}
