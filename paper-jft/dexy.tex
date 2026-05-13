@@ -416,6 +416,19 @@ $$s_{\textrm{BURN}} = \left(t_{\textrm{ED}}, t_{\textrm{RD}}, d, \tau^{\textrm{E
   $\rr$ is called the reference reserve ratio since we can interpret the formula as the reserve ratio of the liquidity pool.
 \end{definition}
 
+\begin{definition}[Arbitrage Mint Maximum]
+  In the arbitrage mint state, when $\rr > 1 + \epsilonfree$, the maximum amount of stablecoins the bank 
+  will allow to be minted is:
+\begin{equation}
+  \delta_{d} = \frac{\delta_b}{\tilde{\Pdt}}
+\end{equation}
+  Where:
+\begin{align}
+  \delta_b &= B - D * \tilde{\Pdt} \\
+  \tilde{\Pdt} &= \Pdt(1 + \phi_{\textrm{BANK}}^{\textrm{FREE}} + \phi_{O})
+\end{align}
+\end{definition}
+
 \newpage
 
 \subsection{State Update Procedures}
@@ -571,7 +584,7 @@ to the blockchain for inclusion.
   \State $isCounterReset \gets (t > \tilde{t})$ \Comment{If true, then the protocol is in a new FreeMint period.}
   \State $dexyMinted \gets \frac{b}{\tilde{\Pdt}}$
   \State $oracleFeeAmount \gets dexyMinted * \Pdt * \phi_{O}$
-  \State $\delta_{d} \gets \alpha_{\textrm{FREE}} * D$ \Comment{Represents the maximum bank reserve growth during the FreeMint period.}
+  \State $\delta_{d} \gets \alpha_{\textrm{FREE}} * D$ \Comment{The maximum bank reserve growth during the FreeMint period.}
   \State $dexyAvailable \gets isCounterReset \textrm{ ? } \delta_{d} \textrm{ : } \tilde{d}$
   \State $validAmount \gets dexyMinted \le dexyAvailable$
   \If{$\lnot isCounterReset$}
@@ -610,7 +623,7 @@ to the blockchain for inclusion.
   \State $dexyMinted \gets \frac{b}{\tilde{\Pdt}}$
   \State $oracleFeeAmount \gets dexyMinted * \Pdt * \phi_{O}$
   \State $\delta_{b} \gets B - D * \tilde{\Pdt}$
-  \State $\delta_{d} \gets \frac{\delta_{b}}{\tilde{\Pdt}}$ \Comment{Represents the maximum bank reserve growth during the ArbMint period.}
+  \State $\delta_{d} \gets \frac{\delta_{b}}{\tilde{\Pdt}}$ \Comment{The maximum bank reserve growth during the ArbMint period.}
   \State $dexyAvailable \gets isCounterReset \textrm{ ? } \delta_{d} \textrm{ : } \tilde{d}$
   \State $validAmount \gets dexyMinted \le dexyAvailable$
   \If{$\lnot isCounterReset$}
