@@ -36,6 +36,7 @@
 
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
 
 \title{Dexy:\protect \\ A Simple Stablecoin Design Based on an Algorithmic Central Bank}
 
@@ -241,10 +242,10 @@ We now give a high-level description of what happens during each action. For mor
 \section{Protocol Specification}
 \label{sec:protocol}
 We now describe the \dx{} protocol specification, which includes immutable protocol paramters and state variables. 
-We note the distinction between an action period, which measures how long the bank is in a particular state, 
-and a corresponding action bank delay, which measures how long before a bank action can be performed, 
-i.e. the delay before the start of the first bank action period. For a particular bank action, 
-there may be multiple periods before a new delay is required.
+We note the distinction between an action period, which measures how long before a bank intervention can happen, 
+and a corresponding action bank delay, which measures how long before the start of the first bank action period. 
+For a particular bank action, there may be multiple periods before a new delay is required.
+
 % \begin{itemize}
 %   \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
 %   \item{} $p$ - basecoin price reported by the oracle at the moment (e.g. 20 USD per ERG, note, however, that the price provided by the oracle will usually be in units of $\frac{\mathrm{basecoin}}{\mathrm{stablecoin}}$, representing the price of the stablecoin in units of basecoins).
@@ -278,7 +279,7 @@ $$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB
   \item $\epsilon_{\textrm{FREE}} \in (0, 1)$ defines the upper and lower bounds of the free-mint range, representing the percentage that the LP price deviates from the oracle price.
   \item $0 < \epsilon_{\textrm{IB}} < \epsilon_{\textrm{FREE}}$ defines the percentage where the inject-basecoins action will restore the price.
   \item $\epsilon_{\textrm{FREE}} < \epsilon_{\textrm{ED}}^{0} < 1$ defines the percentage where the extract-dexy action will happen.
-  \item $0 < \epsilon_{\textrm{ED}}^{1} < \epsilon_{\textrm{ED}}^{0}$ defines the percentage where the extract-dexy action will restore the price.
+  \item $0 < \epsilon_{\textrm{ED}}^{1} < \epsilon_{\textrm{FREE}}$ defines the percentage where the extract-dexy action will restore the price.
   \item $\epsilon_{\textrm{RD}} < \epsilon_{\textrm{FREE}}$ defines the percentage where the release-dexy action will happen.
   \item $T_{\textrm{FREE}} \in \mathbb{R}_{>0}$ is the free-mint period.
   \item $T_{\textrm{ARB}} \in \mathbb{R}_{>0}$ is the arbitrage-mint period.
@@ -296,6 +297,7 @@ The central bank state is determined by a tuple of two values:
 $$s_{\textrm{BANK}} = \left(R, S_{D} \right)$$
 
 \begin{itemize}
+  \item $U_{BANK}$ is a finite set of users that interact with the bank to mint stablecoins.
   \item $R \in \mathbb{R}_{>0}$ is the bank's basecoins reserves.
   \item $S_D \in \mathbb{R}_{>0}$ is the total supply of minted dexy stablecoins.
 \end{itemize}
@@ -304,6 +306,7 @@ The liquidity pool has two parameter:
 $$C_{LP} = \left(\phi^{REDEEM}_{LP}, \phi^{SWAP}_{LP}\right)$$
 
 \begin{itemize}
+  \item $U_{LP}$ is a finite set of users that interact with the liquidity pool, either as liquidity providers or traders.
   \item $\phi^{REDEEM}_{LP} \in (0,1)$ is the liquidity provider withdrawal fee, which should be high enough to disincentivize frequent withdrawals.
   \item $\phi^{SWAP}_{LP} \in (0, 1)$ is the liquidity pool swap fee, which is used to reward liquidity providers. 
 \end{itemize}
@@ -742,30 +745,146 @@ to the blockchain for inclusion.
 
 \newpage
 
-\section{Worst Case Scenario and Bank Reserves}
-\label{sec:worst-case}
+\section{Theorems}
+\label{sec:theorems}
 
-Possible failure scenarios for such a design, and how to put restrictions and design rules for the system to ensure stability of the \stc{} token price, will now be considered. 
+When there is a crash of the basecoin price, in units of the peg asset as provided by the oracle, 
+there will be a time delay of $T_{IB}$ before the bank will intervene into the liquidity pool.
+This is done to give a chance for the liquidity pool price to stabilize itself such that the bank intervention
+will not be necessary. 
 
-The bank intervenes when there is a sudden drop in the basecoin price provided by the oracle and enough time has passed for the markets to have stabilize themselves, with no interventions, but have failed to do so. In our case, the bank is doing interventions based on the stablecoin price in the liquidity pool in comparison with the oracle price. So, the bank's intervention is about injecting its basecoin reserves into the pool, thereby decreasing the basecoin price to match the oracle price.  
+In the worst-case scenario, the market, i.e. a subset of $U_{LP}$, fails to correct the liquidity pool price on its own, 
+within the time period $T_{IB}$, such that $\rr$ is again in the free-mint range. Only then will the bank inject 
+part of its basecoin reserve into the liquidity pool to stabilize its price. 
 
-Consider an example where the basecoins are \bc{}, and assume that the oracle price crashes from $p$ to $s$ sharply and stands there, and before the crash there were $e$ of \bc{} and $u$ of \stc{} in the liquidity pool, with pool's price being $p$. The worst case then is when no liqudity is put into the pool during the period $T$. With large enough $T$ and large enough $R$, this assumption is not very realistic: some traders will buy \bc{}s with their \stc{}s anyway, price is usually failing with swings where traders could mint \stc{}s thus increasing \bc{} bank reserves. However, it would be reasonable to consider worst-case scenario, then in the real world \dx{} will be even more durable than in theory. 
+We have the following theorem and corollary quantifying what this minimum basecoin reserve threshold
+should be in the worst-case scenario.
 
-In this case, the bank must intervene after $T$ units of time, as the price differs significantly, and restore the price in the pool, so set it to $s$. We denote amounts of basecoins and \stc{}s in the pool after the intervention as $e'$ and $u'$, respectively. Then:
+\begin{theorem}[Minimum Bank Reserves]
+  \label{theorem:minimum-bank-reserves}
+  Let $s$ be the oracle price after a basecoin price crash such that $\rr < 1 - \epsilonfree$. 
+  Assuming that all users with remaining dexy stablecoins, $u \in Y \subseteq U_{LP}$, collude such that, after a bank intervention, all stablecoins 
+  outside of the liquidity pool are sold at the new liquidity pool price $s$, then the bank will need
+  a minimum basecoin reserve of $R_{min} \ge sD(\sqrt{\rr} - \rr) + s(\Sd - D)$ to restore the liquidity pool price.
+\end{theorem}
 
-\begin{itemize}
-  \item{} $e * u = e' * u'$.
-  \item{} The bank must inject $E_1$ basecoins into the pool, thus after the trade there will be $e' = e + E_1$ basecoins in the pool.
-  \item{} The new basecoin price in the pool will be $\frac{u'}{e'} = s$, thus $u' = s * (e + E_1)$.
-  \item{} So, isolating for the amount that must be injected, we obtain $E_1 = \sqrt{\frac{e * u}{s}} - e$ basecoins that must be added into the pool from the bank.
-\end{itemize}
+\begin{proof}
+  Let $B'$ and $D'$ be the balance of basecoins and dexy, respectively, in the liqudity pool after the initial 
+  inject basecoin bank intervention. Then, by the CP-AMM formula, we have that $BD = B'D'$. The bank must inject $R_1$ basecoins
+  into the liqudity pool such that the new balance will be $B' = B + R_1$. The new liquidity pool price will be $s = \frac{B'}{D'}$, 
+  so we then have that $D' = \frac{B + R_1}{s}$. We thus obtain the following relation:
+  
+  \begin{align}
+    BD &= B'D' = (B+R_1)\left(\frac{B+R_1}{s}\right) = \frac{(B+R_1)^2}{s} \\
+       &\implies R_1 = \sqrt{sBD} - B
+  \end{align}
 
-So by injecting $E_1$ basecoins, the bank recovers the price. However, this is not enough, as now there are $O$ \stc{} units which can be injected into the pool from outside. 
-Again, it is not realistic to assume that all the $O$ \stc{} would be injected, as some of them are simply lost, some would be kept to buy cheap basecoins at the bottom~(\stc{}s are often used as a bet for a basecoin price decline). However, we need to assume the worst-case scenario again. We also unrealistically assume that all the $O$ tokens are being sold in very small batches that do not significantly affecting the pool price, where after each batch, a seller of a new batch is waiting for a bank intervention to happen (so for $T$ units of time), and sells only after the intervention. In this case, all the $O$ tokens are being sold at price close to $s$, so the bank should have about $E_2 = \frac{O}{s}$ basecoins in reserve to buy the tokens back.
+  Let $D_{OUT}$ be the supply of dexy stablecoins outside the liqudity pool at the time of the intervention.
+  Using the bank state $\sbank$, and the liquidity pool state, $\slp$, we can calculate the value of this 
+  quantity such that $D_{OUT} = \Sd - D$. Thus, to compensate for all $D_{OUT}$ stablecoins being sold
+  in the liquidity pool after the intervention, the bank must additionally have an amount of reserves of at least:
 
-Summing $E_1$ and $E_2$, we obtain the basecoin reserves the bank should have to be ready for the worst-case scenario: $E_w = E_1 + E_2 = \sqrt{\frac{e * u}{s}} - e + \frac{O}{s}$.
+  \begin{equation}
+    R_2 \ge s D_{OUT} = s(\Sd - D)
+  \end{equation}
 
-This scenario is the worst-case for the bank~(and only the bank) because it is buying all of the external $O$ $\stc{}$ at the worst possible price $s$, and also sets the new price by burning its own reserves only.  
+  So, cumulatively, we now have that: 
+
+  \begin{equation}
+    \label{eq:Rmin}
+    R_{min} \ge R_1 + R_2 = \sqrt{sBD} - B + s\left(\Sd - D\right)
+  \end{equation}
+
+  During an intervention, $\rr = \frac{B}{sD} < 1 - \epsilonfree$, by construction of the protocol.
+  So, it follows that $B = \rr sD$. We can then substitue this into equation \ref{eq:Rmin} to obtain the following:
+
+  \begin{align}
+    R_{min} &\ge \sqrt{sBD} - B + s\left(\Sd - D\right) \\
+            &= \sqrt{\rr s^2 D^2} - \rr sD + s\left(\Sd - D\right) \\
+            &= sD \left( \sqrt{\rr} - \rr \right) + s\left(\Sd - D\right)
+  \end{align}
+
+\end{proof}
+
+Since it is expected that $R_2$ is very large, it would be unrealistic for the protocol to prevent bank interventions 
+before the bank's reserves reached $R_{min}$. The $\rr$ could fall below the free-mint range threshold much sooner than the
+bank could adequately fill its reserves from minting fees. Thus, the following corollary provides a practical minimum threshold 
+for the bank's basecoin reserves, expressed as a fraction of the liquidity pool volume.  
+
+\begin{corollary}[Minimum Liquidity Pool Volume Ratio]
+  Neglecting contributions from dexy stablecoins outside the liquidity pool when $\rr < 1 - \epsilonfree$,
+  the bank's basecoin reserves should at least be $(\sqrt{\rr} - \rr)$ of the liquidity pool's dexy stablecoin volume
+  after the basecoin price crash.
+\end{corollary}
+
+\begin{proof}
+  From Theorem \ref{theorem:minimum-bank-reserves}, we have that:
+  
+  \begin{align}
+    R_{min} &\ge sD \left( \sqrt{\rr} - \rr \right) + s\left(\Sd - D\right) \\
+            &> sD \left( \sqrt{\rr} - \rr \right) \\
+  \end{align}
+  
+  Since $sD$ has units of basecoins, this value represents the volume of dexy stablecoins in the liquidity pool.
+  Due to the basecoin price crash, it follows that $s > \Plp \implies sD > B$. Thus, during an inject-basecoin bank intervention, 
+  the bank's basecoin reserve, as a fraction of the dexy stablecoin volume in the liquidity pool before the intervention, 
+  should be strictly greater than:
+
+  \begin{equation}
+    \label{eq:MLPVR}
+    \textrm{MLPVR} \equiv \frac{R_{min}}{sD} > \sqrt{\rr} - \rr  
+  \end{equation}
+
+\end{proof}
+
+In section \ref{sec:implementations}, implementations of the Dexy protocol set $\epsilonfree = 0.02$.
+So, if we suppose a bank intervention occurs at the free-mint range threshold $1 - \epsilonfree = 0.98$, 
+then an appropriate value for the $\textrm{MLPVR}$ would be roughly $1 \%$ of the liquidity pool's dexy stablecoin volume.
+Thus, the bank intervention would inject basecoins until either $\Plp = s$ or the \textrm{MLPVR} amount from its reserves is used.
+
+% Possible failure scenarios for such a design, and how to put restrictions and design rules 
+% for the system to ensure stability of the \stc{} token price, will now be considered. 
+
+% The bank intervenes when there is a sudden drop in the basecoin price provided by the 
+% oracle and enough time has passed for the markets to have stabilize themselves, with no interventions, 
+% but have failed to do so. In our case, the bank is doing interventions based on the stablecoin price in 
+% the liquidity pool in comparison with the oracle price. So, the bank's intervention is about injecting 
+% its basecoin reserves into the pool, thereby decreasing the basecoin price to match the oracle price.  
+
+% Consider an example where the basecoins are \bc{}, and assume that the oracle price crashes 
+% from $p$ to $s$ sharply and stands there, and before the crash there were $e$ of \bc{} and $u$ of \stc{} in 
+% the liquidity pool, with pool's price being $p$. The worst case then is when no liqudity is put into the pool 
+% during the period $T$. With large enough $T$ and large enough $R$, this assumption is not very realistic: 
+% some traders will buy \bc{}s with their \stc{}s anyway, price is usually failing with swings where traders could 
+% mint \stc{}s thus increasing \bc{} bank reserves. However, it would be reasonable to consider worst-case scenario, 
+% then in the real world \dx{} will be even more durable than in theory. 
+
+% In this case, the bank must intervene after $T$ units of time, as the price differs significantly, 
+% and restore the price in the pool, so set it to $s$. We denote amounts of basecoins and \stc{}s in the pool 
+% after the intervention as $e'$ and $u'$, respectively. Then:
+
+% \begin{itemize}
+%   \item{} $e * u = e' * u'$.
+%   \item{} The bank must inject $E_1$ basecoins into the pool, thus after the trade there will be $e' = e + E_1$ basecoins in the pool.
+%   \item{} The new basecoin price in the pool will be $\frac{u'}{e'} = s$, thus $u' = s * (e + E_1)$.
+%   \item{} So, isolating for the amount that must be injected, we obtain $E_1 = \sqrt{\frac{e * u}{s}} - e$ basecoins that must be added into the pool from the bank.
+% \end{itemize}
+
+% So by injecting $E_1$ basecoins, the bank recovers the price. However, this is not enough, as now there are $O$ \stc{} 
+% units which can be injected into the pool from outside. 
+% Again, it is not realistic to assume that all the $O$ \stc{} would be injected, as some of them are simply lost, 
+% some would be kept to buy cheap basecoins at the bottom~(\stc{}s are often used as a bet for a basecoin price decline). 
+% However, we need to assume the worst-case scenario again. We also unrealistically assume that all the $O$ tokens are being
+%  sold in very small batches that do not significantly affecting the pool price, where after each batch, a seller of a new 
+%  batch is waiting for a bank intervention to happen (so for $T$ units of time), and sells only after the intervention. 
+%  In this case, all the $O$ tokens are being sold at price close to $s$, so the bank should have about $E_2 = \frac{O}{s}$ 
+%  basecoins in reserve to buy the tokens back.
+
+% Summing $E_1$ and $E_2$, we obtain the basecoin reserves the bank should have to be ready for the 
+% worst-case scenario: $E_w = E_1 + E_2 = \sqrt{\frac{e * u}{s}} - e + \frac{O}{s}$.
+
+% This scenario is the worst-case for the bank~(and only the bank) because it is buying all of the 
+% external $O$ $\stc{}$ at the worst possible price $s$, and also sets the new price by burning its own reserves only.  
 
 % \section{Bank and Pool Rules}
 % \label{sec:rules}
