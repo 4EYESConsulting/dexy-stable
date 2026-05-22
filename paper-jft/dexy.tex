@@ -21,6 +21,8 @@
 \newcommand{\sarb}{s_{\textrm{ARB}}}
 \newcommand{\sib}{s_{\textrm{IB}}}
 \newcommand{\sburn}{s_{\textrm{BURN}}}
+\newcommand{\ubank}{U_{BANK}}
+\newcommand{\ulp}{U_{LP}}
 
 \newcommand{\tautx}{\tau_{\textrm{TX}}}
 
@@ -100,10 +102,9 @@ when the stablecoin price is above the peg by a certain threshold. In some aspec
 
 %TODO: Fix this paragraph after finishing all sections of the paper.
 The rest of the paper is organized as follows. In Section \ref{sec:design}, the \dx{} design in general is explained, 
-where important trust assumptions are stated and notation used in other sections is introduced. 
-Section \ref{sec:worst-case} defines the worst-case scenario for the bank reserves, and so the stablecoin stability as well. 
-In Section \ref{sec:rules}, the bank and liquidity pool rules are defined, where their stability is discussed in Section \ref{sec:stability}. 
-Section \ref{sec:implementations} describes \dx{} implementations: the gold-pegged DexyGold stablecoin and the USD-pegged USE stablecoin.
+where important trust assumptions are stated. Section $\ref{sec:protocol}$ defines the protocol specification in detail.
+Section \ref{sec:theorems} we consider different theorems related to the stability and design of the protocol.
+Finally, in Section \ref{sec:implementations} describes \dx{} implementations: the gold-pegged DexyGold stablecoin and the USD-pegged USE stablecoin.
 
 \section{\dx{} Design}
 \label{sec:design}
@@ -185,7 +186,7 @@ We now give a high-level description of what happens during each action. For mor
   \begin{itemize}
     \item $\rr$ is bounded within the range $1- \epsilon_{\textrm{FREE}} \le \rr \le 1+ \epsilon_{\textrm{FREE}}$.
     \item If bounded within the range, then minting can occur for a fixed period of time $T_{\textrm{FREE}}$.
-    \item Users can mint from the bank up to a maximum amount determined by the Dexy volume in the liquidity pool at the beginning
+    \item Users can mint from the bank up to a maximum amount determined by the amount of Dexy stablecoins in the liquidity pool at the beginning of the period.
     \item The bank charges a fee so the bank reserves can increase faster.
     \item \textbf{Consequence:} Increase bank reserves and stablecoin supply when the pool price is considered stable.
   \end{itemize}
@@ -193,9 +194,10 @@ We now give a high-level description of what happens during each action. For mor
 \subsubsection{ArbitrageMint}
   \begin{itemize}
     \item $\rr$ is greater than $1 + \epsilon_{\textrm{FREE}}$.
-    \item The $\rr$ is above the threshold for an amount of time greater than $\tau_{\textrm{ARB}}$.
-    \item The liquidity pool and oracle price difference determines the max amount of stablecoins the bank can mint and 
-          the corresponding max amount of basecoins it will accept.
+    \item If $\rr$ is above the threshold for an amount of time greater than $\tau_{\textrm{ARB}}$,
+          then minting can occur for a fixed period of time $T_{\textrm{ARB}}$.
+    \item The liquidity pool and oracle price difference, at the begining of the period, determines the max amount of stablecoins the bank can mint and 
+          the max amount of basecoins it will accept, and thus the corresponding amount of dexy stablecoins to mint $\delta_{d}$.
     \item The bank charges a fee so the bank reserves can increase faster.
     \item \textbf{Consequence:} Purchase stablecoins from the bank at a discount and sell them to the liquidity pool at premium, 
     increasing the liquidity pool stablecoin supply.
@@ -204,7 +206,7 @@ We now give a high-level description of what happens during each action. For mor
 \subsubsection{InjectBasecoins}
   \begin{itemize}
     \item $\rr$ is less than $1 - \epsilon_{\textrm{FREE}}$.
-    \item The $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{IB}}$.
+    \item The $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{IB}} + T_{\textr{IB}}$.
     \item The bank still has basecoin reserves.
     \item The bank will inject basecoins from its reserves into the liquidity pool 
           until the new $\rr$ is within the range $1 - \epsilon_{\textrm{FREE}} \le \rr' \le 1-\epsilon_{\textrm{IB}}$.
@@ -297,7 +299,7 @@ The central bank state is determined by a tuple of two values:
 $$s_{\textrm{BANK}} = \left(R, S_{D} \right)$$
 
 \begin{itemize}
-  \item $U_{BANK}$ is a finite set of users that interact with the bank to mint stablecoins.
+  \item $\ubank$ is a finite set of users that interact with the bank to mint stablecoins.
   \item $R \in \mathbb{R}_{>0}$ is the bank's basecoins reserves.
   \item $S_D \in \mathbb{R}_{>0}$ is the total supply of minted dexy stablecoins.
 \end{itemize}
@@ -306,7 +308,7 @@ The liquidity pool has two parameter:
 $$C_{LP} = \left(\phi^{REDEEM}_{LP}, \phi^{SWAP}_{LP}\right)$$
 
 \begin{itemize}
-  \item $U_{LP}$ is a finite set of users that interact with the liquidity pool, either as liquidity providers or traders.
+  \item $\ulp$ is a finite set of users that interact with the liquidity pool, either as liquidity providers or traders.
   \item $\phi^{REDEEM}_{LP} \in (0,1)$ is the liquidity provider withdrawal fee, which should be high enough to disincentivize frequent withdrawals.
   \item $\phi^{SWAP}_{LP} \in (0, 1)$ is the liquidity pool swap fee, which is used to reward liquidity providers. 
 \end{itemize}
@@ -748,6 +750,50 @@ to the blockchain for inclusion.
 \section{Theorems}
 \label{sec:theorems}
 
+In all theorems, we assume that all algorithms from section \ref{sec:protocol} run correctly so that we need only worry about their 
+return values.
+
+Though trivial, the first stability property we consider is the tolerance of the protocol's liquidity pool
+to price crashes.
+
+\begin{theorem}[Market Crash Tolerance]
+  The liqudity pool can tolerate a basecoin price crash of at most $\epsilonfree$ before any intervention.
+\end{theorem}
+
+\begin{proof}
+  By construction of the protocol, no intervention will happen unless $\rr < 1 - \epsilonfree$.
+\end{proof}
+
+Next, we consider the time it takes for the liquidity pool to recover from a price crash.
+
+\begin{theorem}[Recovery Convergence Time]
+  Suppose there is a basecoin price crash greater than $\epsilonfree$ such that $\Pdt = s$. Assuming there is no 
+  market correction from users $u \in Y \subseteq \ulp$, then the liquidity pool price $\Plp$ will recover in a time at most 
+  $t \le \tau_{\textrm{IB}} + T_{\textrm{IB}}$.
+\end{theorem}
+
+\begin{proof}
+  If the basecoin price crashes more than $\epsilonfree$, then UpdateInjectBasecoins will return
+  $\textsc{TRUE}$.
+  
+  Since InjectBasecoins returns two possible values, we consider each case:
+  \begin{itemize}
+    \item If InjectBasecoins returns $\textsc{TRUE}$, then we know that at least
+          $(\tau_{\textrm{IB}} + T_{\textrm{IB}})$ amount of time has elapsed.
+    \item If InjectBasecoins returns $\textsc{FALSE}$, then, 
+          modulo the non-time based conditions that we assume are $\textsc{TRUE}$, either:
+          \begin{itemize}
+            \item A time $(\tau_{\textrm{IB}} + T_{\textrm{IB}})$ has not passed yet.
+            \item A previous intervention happened before the current one, where $\sib.\tau$ has not changed,
+                  so that we must wait at most a time $T_{\textrm{IB}}$ before InjectBasecoins can be called again,
+                  since it will be the case that $(t - \sib.t) < T_{\textrm{IB}}$, where $t$ is the current time.
+          \end{itemize}
+          So, for this case, we will need to wait a time within the interval $t \in \left[ T_{\textrm{IB}}, \tau_{\textrm{IB}} + T_{\textrm{IB}} \right]$.
+  \end{itemize}
+  Thus, we will need to wait a time at most $t \le \tau_{\textrm{IB}} + T_{\textrm{IB}}$
+  such that the liquidity price $\Plp = s$.
+\end{proof}
+
 When there is a crash of the basecoin price, in units of the peg asset as provided by the oracle, 
 there will be a time delay of $T_{IB}$ before the bank will intervene into the liquidity pool.
 This is done to give a chance for the liquidity pool price to stabilize itself such that the bank intervention
@@ -760,8 +806,8 @@ part of its basecoin reserve into the liquidity pool to stabilize its price.
 We have the following theorem and corollary quantifying what this minimum basecoin reserve threshold
 should be in the worst-case scenario.
 
-\begin{theorem}[Minimum Bank Reserves]
-  \label{theorem:minimum-bank-reserves}
+\begin{theorem}[Minimum Bank Reserve]
+  \label{theorem:minimum-bank-reserve}
   Let $s$ be the oracle price after a basecoin price crash such that $\rr < 1 - \epsilonfree$. 
   Assuming that all users with remaining dexy stablecoins, $u \in Y \subseteq U_{LP}$, collude such that, after a bank intervention, all stablecoins 
   outside of the liquidity pool are sold at the new liquidity pool price $s$, then the bank will need
@@ -780,7 +826,7 @@ should be in the worst-case scenario.
   \end{align}
 
   Let $D_{OUT}$ be the supply of dexy stablecoins outside the liqudity pool at the time of the intervention.
-  Using the bank state $\sbank$, and the liquidity pool state, $\slp$, we can calculate the value of this 
+  Using the bank state $\sbank$, and the liquidity pool state $\slp$, we can calculate the value of this 
   quantity such that $D_{OUT} = \Sd - D$. Thus, to compensate for all $D_{OUT}$ stablecoins being sold
   in the liquidity pool after the intervention, the bank must additionally have an amount of reserves of at least:
 
@@ -809,7 +855,7 @@ should be in the worst-case scenario.
 Since it is expected that $R_2$ is very large, it would be unrealistic for the protocol to prevent bank interventions 
 before the bank's reserves reached $R_{min}$. The $\rr$ could fall below the free-mint range threshold much sooner than the
 bank could adequately fill its reserves from minting fees. Thus, the following corollary provides a practical minimum threshold 
-for the bank's basecoin reserves, expressed as a fraction of the liquidity pool volume.  
+for the bank's basecoin reserves, expressed as a fraction of the liquidity pool dexy stablecoin volume.  
 
 \begin{corollary}[Minimum Liquidity Pool Volume Ratio]
   Neglecting contributions from dexy stablecoins outside the liquidity pool when $\rr < 1 - \epsilonfree$,
@@ -818,7 +864,7 @@ for the bank's basecoin reserves, expressed as a fraction of the liquidity pool 
 \end{corollary}
 
 \begin{proof}
-  From Theorem \ref{theorem:minimum-bank-reserves}, we have that:
+  From Theorem \ref{theorem:minimum-bank-reserve}, we have that:
   
   \begin{align}
     R_{min} &\ge sD \left( \sqrt{\rr} - \rr \right) + s\left(\Sd - D\right) \\
