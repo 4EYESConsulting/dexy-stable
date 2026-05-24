@@ -196,8 +196,7 @@ We now give a high-level description of what happens during each action. For mor
     \item $\rr$ is greater than $1 + \epsilon_{\textrm{FREE}}$.
     \item If $\rr$ is above the threshold for an amount of time greater than $\tau_{\textrm{ARB}}$,
           then minting can occur for a fixed period of time $T_{\textrm{ARB}}$.
-    \item The liquidity pool and oracle price difference, at the begining of the period, determines the max amount of stablecoins the bank can mint and 
-          the max amount of basecoins it will accept, and thus the corresponding amount of dexy stablecoins to mint $\delta_{d}$.
+    \item The liquidity pool and oracle price difference, at the begining of the period, determines the max amount of dexy stablecoins to mint $\delta_{d}$.
     \item The bank charges a fee so the bank reserves can increase faster.
     \item \textbf{Consequence:} Purchase stablecoins from the bank at a discount and sell them to the liquidity pool at premium, 
     increasing the liquidity pool stablecoin supply.
@@ -206,18 +205,18 @@ We now give a high-level description of what happens during each action. For mor
 \subsubsection{InjectBasecoins}
   \begin{itemize}
     \item $\rr$ is less than $1 - \epsilon_{\textrm{FREE}}$.
-    \item The $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{IB}} + T_{\textr{IB}}$.
+    \item The $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{IB}} + T_{\textrm{IB}}$.
     \item The bank still has basecoin reserves.
     \item The bank will inject basecoins from its reserves into the liquidity pool 
           until the new $\rr$ is within the range $1 - \epsilon_{\textrm{FREE}} \le \rr' \le 1-\epsilon_{\textrm{IB}}$.
     \item The amount of basecoins injected is a fixed percentage $\alpha_{\textrm{FREE}}$ of the banks total basecoin reserve.
-    \item \textbf{Consequence:} The bank's basecoins reserves decrease and the liquidity pool price recovers.
+    \item \textbf{Consequence:} The bank's basecoin reserve decreases and the liquidity pool price recovers.
   \end{itemize}
 
 \subsubsection{ExtractDexy}
   \begin{itemize}
     \item $\rr$ is less than $1 - \epsilon_{\textrm{ED}}^{0} < 1 - \epsilon_{\textrm{FREE}}$.
-    \item $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{ED}} << \tau_{\textrm{IB}}$
+    \item $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{ED}} >> \tau_{\textrm{IB}}$
     \item The bank has no more basecoin reserves.
     \item The bank will extract stablecoins from the liquidity pool until the new $\rr$ is in 
           the range $1 - \epsilon_{\textrm{FREE}} - \epsilon_{\textrm{ED}}^{1} \le \rr' \le 1-\epsilon_{\textrm{FREE}}$, 
@@ -286,6 +285,7 @@ $$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB
   \item $T_{\textrm{FREE}} \in \mathbb{R}_{>0}$ is the free-mint period.
   \item $T_{\textrm{ARB}} \in \mathbb{R}_{>0}$ is the arbitrage-mint period.
   \item $T_{\textrm{IB}} \in \mathbb{R}_{>0}$ is the inject-basecoins period.
+  \item $T_{\textrm{BURN}} \in \mathbb{R}_{>0}$ is the extract-dexy and release-dexy period.
   \item $\tau_{\textrm{ARB}} \in \mathbb{R}_{>0}$ is the arbitrage-mint bank delay.
   \item $\tau_{\textrm{IB}} \in \mathbb{R}_{>0}$ is the inject-basecoins bank delay.
   \item $\tau_{\textrm{ED}} >> \tau_{\textrm{IB}}$ is the extract-dexy bank delay, which must be much larger than the inject-basecoins bank delay, since extraction is an action of last-resort.
@@ -701,9 +701,10 @@ to the blockchain for inclusion.
   \State $validRatio \gets \rr \le 1 - \epsilondexyzero < 1 - \epsilonfree$
   \State $validExtractionRatio \gets \rr' \in \left[ 1-\epsilondexyone, 1 - \epsilonfree \right]$
   \State $validDelay \gets t > \tilde{\tau}^{\textrm{ED}} + \tau_{\textrm{ED}}$
+  \State $validBurnPeriod \gets t > \tilde{t}_{\textrm{ED}} + T_{\textrm{BURN}}$
   \State $validUpdate \gets t \le t' + \tautx$
   \State $validAmounts \gets validRatio \land validExtractionRatio$
-  \State $validTimes \gets validDelay \land validUpdate$
+  \State $validTimes \gets validDelay \land validBurnPeriod \land validUpdate$
   \If{$validAmounts \land validTimes$}
     \State $\slp \gets (B, D-d)$
     \State $\sburn \gets (t', \tilde{t}_{\textrm{RD}}, d, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}})$
@@ -731,10 +732,11 @@ to the blockchain for inclusion.
   \State $validRatio \gets \rr \in \left(1 + \epsilonreleasedexy , 1 + \epsilonfree\right)$
   \State $validInjectionRatio \gets \rr' <  1 + \epsilonreleasedexy$
   \State $validDelay \gets t > \tilde{\tau}^{\textrm{RD}} + \tau_{\textrm{RD}}$
+  \State $validBurnPeriod \gets t > \tilde{t}_{\textrm{RD}} + T_{\textrm{BURN}}$
   \State $validUpdate \gets t \le t' + \tautx$
   \State $validInjectionAmount \gets d \in (0, \tilde{d})$
   \State $validAmounts \gets validRatio \land validInjectionRatio \land validInjectionAmount$
-  \State $validTimes \gets validDelay \land validUpdate$
+  \State $validTimes \gets validDelay \land validBurnPeriod \land validUpdate$
   \If{$validAmounts \land validTimes$}
     \State $\slp \gets (B, D+d)$
     \State $\sburn \gets (\tilde{t}_{\textrm{ED}}, t', \tilde{d}-d, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}})$
