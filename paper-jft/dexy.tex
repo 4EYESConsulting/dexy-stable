@@ -763,12 +763,13 @@ return values.
 Though trivial, the first stability property we consider is the tolerance of the protocol's liquidity pool
 to price crashes.
 
-\begin{theorem}[Market Crash Tolerance]
-  The liqudity pool can tolerate a basecoin price crash of at most $\epsilonfree$ before any intervention.
+\begin{theorem}[Basecoin Price Crash Tolerance]
+  Assuming $\Plp$ is constant before and after a basecoin price crash, and that $\rr \in \left[1-\epsilonfree, 1+\epsilonfree \right]$, 
+  then the liqudity pool can tolerate a basecoin price crash of at least $\frac{\rr - (1-\epsilonfree)}{\rr}$ before any intervention.
 \end{theorem}
 
 \begin{proof}
-  By construction of the protocol, no intervention will happen unless $\rr < 1 - \epsilonfree$.
+  TODO: Add new proof for this.
 \end{proof}
 
 Next, we consider the time it takes for the liquidity pool to recover from a price crash.
