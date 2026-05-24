@@ -205,7 +205,8 @@ We now give a high-level description of what happens during each action. For mor
 \subsubsection{InjectBasecoins}
   \begin{itemize}
     \item $\rr$ is less than $1 - \epsilon_{\textrm{FREE}}$.
-    \item The $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{IB}} + T_{\textrm{IB}}$.
+    \item The $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{IB}}$.
+    \item An amount of time greater than $T_{\textrm{IB}}$ has elapsed before the first intervention or before the previous one. 
     \item The bank still has basecoin reserves.
     \item The bank will inject basecoins from its reserves into the liquidity pool 
           until the new $\rr$ is within the range $1 - \epsilon_{\textrm{FREE}} \le \rr' \le 1-\epsilon_{\textrm{IB}}$.
@@ -217,6 +218,7 @@ We now give a high-level description of what happens during each action. For mor
   \begin{itemize}
     \item $\rr$ is less than $1 - \epsilon_{\textrm{ED}}^{0} < 1 - \epsilon_{\textrm{FREE}}$.
     \item $\rr$ is less than the threshold for an amount of time greater than $\tau_{\textrm{ED}} >> \tau_{\textrm{IB}}$
+    \item An amount of time greater than $T_{\textrm{BURN}}$ has elapsed before the first extraction or before the previous one. 
     \item The bank has no more basecoin reserves.
     \item The bank will extract stablecoins from the liquidity pool until the new $\rr$ is in 
           the range $1 - \epsilon_{\textrm{FREE}} - \epsilon_{\textrm{ED}}^{1} \le \rr' \le 1-\epsilon_{\textrm{FREE}}$, 
@@ -224,10 +226,13 @@ We now give a high-level description of what happens during each action. For mor
     \item \textbf{Consequence:} The bank removes stablecoins from the liquidity pool and the liquidity pool price recovers.
   \end{itemize}
 
+\newpage 
+
 \subsubsection{ReleaseDexy}
   \begin{itemize}
     \item $\rr$ is within the range $1 + \epsilon_{\textrm{RD}} < \rr <  1 + \epsilon_{\textrm{FREE}}$.
     \item $\rr$ is within the range for an amount of time greater than $\tau_{\textrm{RD}}$.
+    \item An amount of time greater than $T_{\textrm{BURN}}$ has elapsed before the first release or before the previous one. 
     \item The bank will release the locked stablecoins back into the liquidity pool until the new $\rr$ is greater than or equal to $1 + \epsilon_{\textrm{RD}}$
     \item \textbf{Consequence:} The bank releases stablecoins back into the liquidity pool such that it is prioritized over arbitrage minting.
   \end{itemize}
