@@ -772,36 +772,6 @@ to price crashes.
   TODO: Add new proof for this.
 \end{proof}
 
-Next, we consider the time it takes for the liquidity pool to recover from a price crash.
-
-\begin{theorem}[Recovery Convergence Time]
-  Suppose there is a basecoin price crash greater than $\epsilonfree$ such that $\Pdt = s$. Assuming there is no 
-  market correction from users $u \in Y \subseteq \ulp$, then the liquidity pool price $\Plp$ will recover in a time at most 
-  $t \le \tau_{\textrm{IB}} + T_{\textrm{IB}}$.
-\end{theorem}
-
-\begin{proof}
-  If the basecoin price crashes more than $\epsilonfree$, then UpdateInjectBasecoins will return
-  $\textsc{TRUE}$.
-  
-  Since InjectBasecoins returns two possible values, we consider each case:
-  \begin{itemize}
-    \item If InjectBasecoins returns $\textsc{TRUE}$, then we know that at least
-          $(\tau_{\textrm{IB}} + T_{\textrm{IB}})$ amount of time has elapsed.
-    \item If InjectBasecoins returns $\textsc{FALSE}$, then, 
-          modulo the non-time based conditions that we assume are $\textsc{TRUE}$, either:
-          \begin{itemize}
-            \item A time $(\tau_{\textrm{IB}} + T_{\textrm{IB}})$ has not passed yet.
-            \item A previous intervention happened before the current one, where $\sib.\tau$ has not changed,
-                  so that we must wait at most a time $T_{\textrm{IB}}$ before InjectBasecoins can be called again,
-                  since it will be the case that $(t - \sib.t) < T_{\textrm{IB}}$, where $t$ is the current time.
-          \end{itemize}
-          So, for this case, we will need to wait a time within the interval $t \in \left[ T_{\textrm{IB}}, \tau_{\textrm{IB}} + T_{\textrm{IB}} \right]$.
-  \end{itemize}
-  Thus, we will need to wait a time at most $t \le \tau_{\textrm{IB}} + T_{\textrm{IB}}$
-  such that the liquidity price $\Plp = s$.
-\end{proof}
-
 When there is a crash of the basecoin price, in units of the peg asset as provided by the oracle, 
 there will be a time delay of $T_{IB}$ before the bank will intervene into the liquidity pool.
 This is done to give a chance for the liquidity pool price to stabilize itself such that the bank intervention
@@ -895,6 +865,36 @@ In section \ref{sec:implementations}, implementations of the Dexy protocol set $
 So, if we suppose a bank intervention occurs at the free-mint range threshold $1 - \epsilonfree = 0.98$, 
 then an appropriate value for the $\textrm{MLPVR}$ would be roughly $1 \%$ of the liquidity pool's dexy stablecoin volume.
 Thus, the bank intervention would inject basecoins until either $\Plp = s$ or the \textrm{MLPVR} amount from its reserves is used.
+
+Next, we consider the time it takes for the liquidity pool to recover from a price crash.
+
+\begin{theorem}[Recovery Convergence Time]
+  Suppose there is a basecoin price crash greater than $\epsilonfree$ such that $\Pdt = s$. Assuming there is no 
+  market correction from users $u \in Y \subseteq \ulp$ and that the bank's basecoin reserve is greater than $R_{min}$, 
+  then the liquidity pool price $\Plp$ will recover in a time at most $t \le \tau_{\textrm{IB}} + T_{\textrm{IB}}$.
+\end{theorem}
+
+\begin{proof}
+  If the basecoin price crashes more than $\epsilonfree$, then UpdateInjectBasecoins will return
+  $\textsc{TRUE}$.
+  
+  Since InjectBasecoins returns two possible values, we consider each case:
+  \begin{itemize}
+    \item If InjectBasecoins returns $\textsc{TRUE}$, then we know that at least
+          $(\tau_{\textrm{IB}} + T_{\textrm{IB}})$ amount of time has elapsed.
+    \item If InjectBasecoins returns $\textsc{FALSE}$, then, 
+          modulo the non-time based conditions that we assume are $\textsc{TRUE}$, either:
+          \begin{itemize}
+            \item A time $(\tau_{\textrm{IB}} + T_{\textrm{IB}})$ has not passed yet.
+            \item A previous intervention happened before the current one, where $\sib.\tau$ has not changed,
+                  so that we must wait at most a time $T_{\textrm{IB}}$ before InjectBasecoins can be called again,
+                  since it will be the case that $(t - \sib.t) < T_{\textrm{IB}}$, where $t$ is the current time.
+          \end{itemize}
+          So, for this case, we will need to wait a time within the interval $t \in \left[ T_{\textrm{IB}}, \tau_{\textrm{IB}} + T_{\textrm{IB}} \right]$.
+  \end{itemize}
+  Thus, we will need to wait a time at most $t \le \tau_{\textrm{IB}} + T_{\textrm{IB}}$
+  such that the liquidity price $\Plp = s$.
+\end{proof}
 
 % Possible failure scenarios for such a design, and how to put restrictions and design rules 
 % for the system to ensure stability of the \stc{} token price, will now be considered. 
