@@ -210,7 +210,7 @@ We now give a high-level description of what happens during each action. For mor
     \item The bank still has basecoin reserves.
     \item The bank will inject basecoins from its reserves into the liquidity pool 
           until the new $\rr$ is within the range $1 - \epsilon_{\textrm{FREE}} \le \rr' \le 1-\epsilon_{\textrm{IB}}$.
-    \item The amount of basecoins injected is a fixed percentage $\alpha_{\textrm{FREE}}$ of the banks total basecoin reserve.
+    \item The amount of basecoins injected is a fixed percentage $\alpha_{\textrm{IB}}$ of the banks total basecoin reserve.
     \item \textbf{Consequence:} The bank's basecoin reserve decreases and the liquidity pool price recovers.
   \end{itemize}
 
@@ -277,7 +277,7 @@ For a particular bank action, there may be multiple periods before a new delay i
 % \end{itemize}
 
 The central bank parameters are a tuple $C_{\textrm{BANK}}$ of:
-$$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB}}, \epsilon_{\textrm{FREE}}, \epsilon_{\textrm{IB}}, \epsilon_{\textrm{ED}}^{0}, \epsilon_{\textrm{ED}}^{1}, \epsilon_{\textrm{RD}}, T_{\textrm{FREE}}, T_{\textrm{ARB}}, T_{\textrm{IB}},  \tau_{\textrm{IB}}, \tau_{\textrm{ED}}, \tau_{\textrm{RD}}, \tau_{\textrm{TX}}, \alpha_{\textrm{FREE}}, \alpha_{\textrm{IB}}  \right)$$
+$$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB}}, \epsilon_{\textrm{FREE}}, \epsilon_{\textrm{IB}}, \epsilon_{\textrm{ED}}^{0}, \epsilon_{\textrm{ED}}^{1}, \epsilon_{\textrm{RD}}, T_{\textrm{FREE}}, T_{\textrm{ARB}}, T_{\textrm{IB}}, T_{\textrm{BURN}}, \tau_{\textrm{IB}}, \tau_{\textrm{ED}}, \tau_{\textrm{RD}}, \tau_{\textrm{TX}}, \alpha_{\textrm{FREE}}, \alpha_{\textrm{IB}}  \right)$$
 
 \begin{itemize}
   \item $\phi_{\textrm{BANK}}^{\textrm{FREE}} \in (0, 1)$ is the bank fee for the free-mint action.
@@ -760,16 +760,40 @@ to the blockchain for inclusion.
 In all theorems, we assume that all algorithms from section \ref{sec:protocol} run correctly so that we need only worry about their 
 return values.
 
-Though trivial, the first stability property we consider is the tolerance of the protocol's liquidity pool
-to price crashes.
+The first stability property we consider is the tolerance of the protocol's liquidity pool
+to basecoin price crashes.
 
 \begin{theorem}[Basecoin Price Crash Tolerance]
-  Assuming $\Plp$ is constant before and after a basecoin price crash, and that $\rr \in \left[1-\epsilonfree, 1+\epsilonfree \right]$, 
-  then the liqudity pool can tolerate a basecoin price crash of at least $\frac{\rr - (1-\epsilonfree)}{\rr}$ before any intervention.
+  Let $s$ and $s'$ be the oracle price befre and after a basecoin price crash, respectively. 
+  Assuming $\Plp$ is constant before and after a basecoin price crash, and 
+  that $\rr \in \left[1-\epsilonfree, 1+\epsilonfree \right]$, then the liqudity pool can 
+  tolerate a basecoin price crash of at most  $\frac{\rr - (1-\epsilonfree)}{\rr}$ 
+  before any intervention.
 \end{theorem}
 
 \begin{proof}
-  TODO: Add new proof for this.
+  Let $y = \frac{1}{s}$ and $y' = \frac{1}{s'}$ be the basecoin price in units of peg asset before 
+  and after the crash, respectively. After the basecoin price crash, the new reference 
+  reserve ratio will be:
+  
+  \begin{align}
+    \rr' &= \frac{\Plp}{s'} \\ 
+         &= \Plp y' \\
+         &\ge 1 - \epsilonfree
+  \end{align}
+
+  Since we assume the liquidity pool price remains constant before and after the crash, then:
+  
+  \begin{equation}
+    \Plp = \rr \Pdt = \frac{\rr}{y}
+  \end{equation}
+
+  So, we then have that:
+  
+  \begin{align}
+    y' &\ge \frac{1-\epsilonfree}{\Plp} = \frac{(1-\epsilonfree)y}{\rr} \\
+       \implies \frac{y - y'}{y} &\le \frac{\rr - (1-\epsilonfree)}{\rr}
+  \end{align}
 \end{proof}
 
 When there is a crash of the basecoin price, in units of the peg asset as provided by the oracle, 
