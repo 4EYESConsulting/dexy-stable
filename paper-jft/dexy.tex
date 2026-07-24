@@ -98,7 +98,7 @@ In this work, we present \dx{}, a stablecoin protocol where an algorithmic centr
 The bank stabilizes the stablecoin value in the reference market, a liquidity pool, by injecting basecoins from its reserves when the 
 stablecoin price is below the peg. In extreme cases, when bank reserves are depleted and the stablecoin price is still below the peg, 
 the liquidity pool price is restored by extracting stablecoins from it, these will be injected back again at a future time, 
-when the stablecoin price is above the peg by a certain threshold. In some aspects, \dx{} could resemble Fei or Gyroscope \cite{Gyroscope}. 
+when the stablecoin price is above the peg by a certain threshold. 
 
 %TODO: Fix this paragraph after finishing all sections of the paper.
 The rest of the paper is organized as follows. In section \ref{sec:design}, the \dx{} design in general is explained, while 
@@ -1097,11 +1097,19 @@ a combination of the amount of bank reserves and the circulating supply of stabl
 actions.
 
 During a depeg, the Dexy protocol employs the two mechanisms of basecoin injection and stablecoin extraction in order 
-to stabilize the $\rr$. These actions are done autonomously by the bank. 
+to stabilize the $\rr$. These actions are done autonomously by the bank. Thus, Dexy exists as an alternative 
+crypto-backed stablecoin where recovering from a depeg happens via the bank itself instead of user actions.
 
-Thus, Dexy exists as an alternative crypto-backed stablecoin where recovering from a depeg happens via the bank itself. 
-This mechanism illustrates that future work can consider alternative mechanisms for automatically adjusting the 
-reserve ratio such that the algorithmic stablecoin protocol returns to a peg state in a sufficiently small time period.
+In some aspects, \dx{} also resembles Fei \cite{Fei} and Gyroscope \cite{Gyroscope}.
+All three are built around an algorithmic central bank: a rule-based protocol entity that
+holds reserves, mints stablecoins, and conducts open-market operations in designated markets.
+Howeverv, \dx{} differs from both in the following ways: 
+Its bank supports one-way minting only, and this property is immutable, whereas Gyroscope's
+primary market allows redemptions and Fei's buy-only bonding curve was later modified by governance.
+\dx{}'s intervention rules are likewise immutable, with no governance in principle 
+(though this could be included in a particular implementation), and interventions can only
+take place after predefined time delays, giving markets time to self-stabilize.
+Finally, \dx{}'s last-resort extraction of stablecoins is reversible, unlike Fei's permanent burns.
 
 \section{Implementations}
 \label{sec:implementations}
@@ -1130,6 +1138,15 @@ can then redeem for the accumulated basecoin fees in the same DEX liquidity pool
 % $X$ oracles wil get up to $2 \cdot X$ GORTs per epoch (one datapoint update), per Oracle Pool v2 design~\cite{eip23}~(
 % $2 \cdot X$ if all the oracles are active). We consider $X = 30$ oracles with one hour long epoch, which means up to $60$
 % GORTs will be released to oracles.
+
+\subsection{Governance}
+\label{subsec:governance}
+
+Both Dexy implementations use the same governance mechanism that allows for updating either the bank contract, 
+the basecoin injection contract, or the stablecoin extraction and release contract. This is done via ballot tokens used 
+for casting votes on whether or not to update a particular contract to a new contract. Update are no longer possible if either all 
+of these ballot tokens are burned, thus no one can vote, or if the update contract removes the spending path for future updates.
+See the link in subsection \ref{subsec:smartcontracts} for implementation details.
 
 \subsection{\dxg}
 \label{subsec:dexygold}
@@ -1179,6 +1196,6 @@ The smart-contracts and off-chain code can be found in the following repository 
 
 \bibliographystyle{plain}
 
-\bibliography{sources}s
+\bibliography{sources}
 
 \end{document}
