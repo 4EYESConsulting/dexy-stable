@@ -455,7 +455,7 @@ that the bank always has the accurate state information available before any ban
 The procedures are meant to be continuously running, checking which bank action states can be updated
 according to whatever value the $\rr$ has. 
 
-In practice, on eUTxO blockchains, these procedures are validators, such that if they evaluate to $\textsc{true}$,
+In practice, on eUTxO \cite{EUTXO} blockchains, these procedures are validators, such that if they evaluate to $\textsc{true}$,
 then the corresponding transaction built to update the state can be successfully submitted to the blockchain for inclusion.
 
 \subsubsection{UpdateArbitrageMint}
@@ -467,9 +467,9 @@ then the corresponding transaction built to update the state can be successfully
 \State $(\tilde{t}, \tilde{d}, \tilde{\tau}) \gets \sarb$
 \State $(\Pdt, F) \gets \soracle$
 \State $\rr \gets \rr(\Pdt, \slp)$
-\State $notUpdated \gets (\tau == \infty)$
+\State $notUpdated \gets (\tilde{\tau} == \infty)$
 \State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Update time is in a valid interval.}
-\State $notReset \gets (\tau < \infty)$
+\State $notReset \gets (\tilde{\tau} < \infty)$
 \State $validReset \gets (t' == \infty)$
 \State $isUpdate \gets (\rr > 1  + \epsilonfree) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr \le 1 + \epsilonfree) \land notReset \land validReset$
@@ -518,9 +518,9 @@ can be updated correctly.
 \State $(\tilde{t}, \tilde{\tau}) \gets \sib$
 \State $(\Pdt, F) \gets \soracle$
 \State $\rr \gets \rr(\Pdt, \slp)$
-\State $notUpdated \gets (\tau == \infty)$
+\State $notUpdated \gets (\tilde{\tau} == \infty)$
 \State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Update time is in a valid interval.}
-\State $notReset \gets (\tau < \infty)$
+\State $notReset \gets (\tilde{\tau} < \infty)$
 \State $validReset \gets (t' == \infty)$
 \State $isUpdate \gets (\rr < 1  - \epsilonfree) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr \ge 1 - \epsilonfree) \land notReset \land validReset$
@@ -549,9 +549,9 @@ can be updated correctly.
 \State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}}) \gets \sburn$
 \State $(\Pdt, F) \gets \soracle$ 
 \State $\rr \gets \rr(\Pdt, \slp)$
-\State $notUpdated \gets (\tau == \infty)$
+\State $notUpdated \gets (\tilde{\tau}^{\textrm{ED}} == \infty)$
 \State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Update time is in a valid interval.}
-\State $notReset \gets (\tau < \infty)$
+\State $notReset \gets (\tilde{\tau}^{\textrm{ED}} < \infty)$
 \State $validReset \gets (t' == \infty)$
 \State $isUpdate \gets (\rr \le 1 - \epsilondexyzero) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr > 1 - \epsilondexyzero) \land notReset \land validReset$
@@ -580,9 +580,9 @@ can be updated correctly.
 \State $(\tilde{t}_{\textrm{ED}}, \tilde{t}_{\textrm{RD}}, \tilde{d}, \tilde{\tau}^{\textrm{ED}}, \tilde{\tau}^{\textrm{RD}}) \gets \sburn$
 \State $(\Pdt, F) \gets \soracle$ 
 \State $\rr \gets \rr(\Pdt, \slp)$
-\State $notUpdated \gets (\tau == \infty)$
+\State $notUpdated \gets (\tilde{\tau}^{\textrm{RD}} == \infty)$
 \State $validUpdate \gets (t' \ge t - \tautx) \land (t' \le t)$ \Comment{Update time is in a valid interval.}
-\State $notReset \gets (\tau < \infty)$
+\State $notReset \gets (\tilde{\tau}^{\textrm{RD}} < \infty)$
 \State $validReset \gets (t' == \infty)$
 \State $isUpdate \gets (\rr > 1  + \epsilonreleasedexy) \land notUpdated \land validUpdate$ 
 \State $isReset \gets (\rr \le 1 + \epsilonreleasedexy) \land notReset \land validReset$
@@ -799,7 +799,7 @@ The first stability property we consider is the tolerance of the protocol's liqu
 to basecoin price crashes.
 
 \begin{theorem}[Basecoin Price Crash Tolerance]
-  Let $s$ and $s'$ be the oracle price befre and after a basecoin price crash, respectively. 
+  Let $s$ and $s'$ be the oracle price before and after a basecoin price crash, respectively. 
   Assuming $\Plp$ is constant before and after a basecoin price crash, and 
   that $\rr \in \left[1-\epsilonfree, 1+\epsilonfree \right]$, then the liqudity pool can 
   tolerate a basecoin price crash of at most  $\frac{\rr - (1-\epsilonfree)}{\rr}$ 
@@ -929,9 +929,11 @@ So, if we suppose a bank intervention occurs at the free-mint range threshold $1
 then an appropriate value for the $\textrm{MLPVR}$ would be roughly $1 \%$ of the liquidity pool's dexy stablecoin volume.
 Thus, the bank intervention would inject basecoins until either $\Plp = s$ or the \textrm{MLPVR} amount from its reserves is used.
 
-Next, we consider the time it takes for the liquidity pool to recover from a price crash.
+Next, we consider the time it takes for the liquidity pool to recover from a price crash via basecoin injection and 
+stablecoin extraction. The following theorems show that despite a basecoin price crash, the stability of the protocol is 
+ensured through finite recovery convergence times.
 
-\begin{theorem}[Recovery Convergence Time]
+\begin{theorem}[Recovery Convergence Time: Basecoin Injection]
   Suppose there is a basecoin price crash greater than $\epsilonfree$ such that $\Pdt = s$. Assuming there is no 
   market correction from users $u \in Y \subseteq \ulp$ and that the bank's basecoin reserve is greater than $R_{min}$, 
   then the liquidity pool price $\Plp$ will recover in a time at most $t \le \tau_{\textrm{IB}} + T_{\textrm{IB}}$.
@@ -949,7 +951,7 @@ Next, we consider the time it takes for the liquidity pool to recover from a pri
           modulo the non-time based conditions that we assume are $\textsc{TRUE}$, either:
           \begin{itemize}
             \item A time $(\tau_{\textrm{IB}} + T_{\textrm{IB}})$ has not passed yet.
-            \item A previous intervention happened before the current one, where $\sib.\tau$ has not changed,
+            \item A previous intervention happened before the current one, where $\sib.tau$ has not changed,
                   so that we must wait at most a time $T_{\textrm{IB}}$ before InjectBasecoins can be called again,
                   since it will be the case that $(t - \sib.t) < T_{\textrm{IB}}$, where $t$ is the current time.
           \end{itemize}
@@ -958,6 +960,42 @@ Next, we consider the time it takes for the liquidity pool to recover from a pri
   Thus, we will need to wait a time at most $t \le \tau_{\textrm{IB}} + T_{\textrm{IB}}$
   such that the liquidity price $\Plp = s$.
 \end{proof}
+
+Similarly, if basecoin injection still fails, we want to consider the time it will take for the liquidity pool to recover 
+from a price crash via stablecoin extraction.
+
+\begin{theorem}[Recovery Convergence Time: Stablecoin Extraction]
+  Suppose there is a basecoin price crash greater than $\epsilondexyzero$ such that $\Pdt = s$. Assuming there is no 
+  market correction from users $u \in Y \subseteq \ulp$ and that the bank's basecoin reserve is zero, 
+  then the liquidity pool price $\Plp$ will recover in a time at most $t \le \tau_{\textrm{ED}} + T_{\textrm{BURN}}$.
+\end{theorem}
+
+\begin{proof}
+  If the basecoin price crashes more than $\epsilondexyzero$, then UpdateExtractDexy will return
+  $\textsc{TRUE}$.
+  
+  Since ExtractDexy returns two possible values, we consider each case:
+  \begin{itemize}
+    \item If ExtractDexy returns $\textsc{TRUE}$, then we know that at least
+          $(\tau_{\textrm{ED}} + T_{\textrm{BURN}})$ amount of time has elapsed.
+    \item If ExtractDexy returns $\textsc{FALSE}$, then, 
+          modulo the non-time based conditions that we assume are $\textsc{TRUE}$, either:
+          \begin{itemize}
+            \item A time $(\tau_{\textrm{ED}} + T_{\textrm{BURN}})$ has not passed yet.
+            \item A previous extraction happened before the current one, where $\sburn.\tau^{\textrm{ED}}$ has not changed,
+                  so that we must wait at most a time $T_{\textrm{BURN}}$ before ExtractDexy can be called again,
+                  since it will be the case that $(t - \sburn.t_{\textrm{ED}}) < T_{\textrm{BURN}}$, where $t$ is the current time.
+          \end{itemize}
+          So, for this case, we will need to wait a time either $\left(T_{\textrm{BURN}} + \sburn.t_{\textrm{ED}} - t\right)$ or $\left(\tau_{\textrm{ED}} + T_{\textrm{BURN}}\right)$.
+  \end{itemize}
+  Thus, we will need to wait a time at most $t \le \tau_{\textrm{ED}} + T_{\textrm{BURN}}$
+  such that the liquidity price $\Plp = s$.
+\end{proof}
+
+So, in the most extreme case, where an inject-basecoin and extract-dexy action occur one after the other and the market fails 
+to self-stabilize, the cumulative time for the liquidity pool price to recover will be bounded by the sum of the 
+recovery convergence times for each separate action.
+
 
 % Possible failure scenarios for such a design, and how to put restrictions and design rules 
 % for the system to ensure stability of the \stc{} token price, will now be considered. 
@@ -1103,7 +1141,7 @@ crypto-backed stablecoin where recovering from a depeg happens via the bank itse
 In some aspects, \dx{} also resembles Fei \cite{Fei} and Gyroscope \cite{Gyroscope}.
 All three are built around an algorithmic central bank: a rule-based protocol entity that
 holds reserves, mints stablecoins, and conducts open-market operations in designated markets.
-Howeverv, \dx{} differs from both in the following ways: 
+However, \dx{} differs from both in the following ways: 
 Its bank supports one-way minting only, and this property is immutable, whereas Gyroscope's
 primary market allows redemptions and Fei's buy-only bonding curve was later modified by governance.
 \dx{}'s intervention rules are likewise immutable, with no governance in principle 
