@@ -109,58 +109,6 @@ object MainnetDexyGoldTokenIds extends NetworkTokenIds {
 
 }
 
-/**
- * Mainnet deployment data for DexyUSD
- */
-object MainnetDexyUSDTokenIds extends NetworkTokenIds {
-
-  // oracle related tokens
-  // take token IDs below from oracle pool UI
-  // Gold Oracle Reward Token
-  val gort = ""
-  val oracleTokenId = ""
-  val oraclePoolNFT = ""
-
-  val gortDevEmissionNFT: String = ""
-
-  // GORT / ERG LP
-  val gortLpNFT = ""
-
-  // 3 tokens issued to make parallel execution easier
-  val buybackNFT = ""
-
-  // Dexy LP tokens
-  override val lpNFT: String = ""
-  override val lpSwapNFT: String = ""
-  override val lpMintNFT: String = ""
-  override val lpRedeemNFT: String = ""
-  override val lpTokenId: String = ""
-
-  override val tracking95NFT: String = ""
-  override val tracking98NFT: String = ""
-  override val tracking101NFT: String = ""
-
-  override val bankNFT: String = ""
-
-  override val updateNFT: String = ""
-
-  override val ballotTokenId: String = ""
-
-  override val interventionNFT: String = ""
-
-  override val extractionNFT: String = ""
-
-  override val arbitrageMintNFT: String = ""
-
-  override val freeMintNFT: String = ""
-
-  override val payoutNFT: String = ""
-
-  // DexyGold token
-  override val dexyTokenId: String = ""
-
-}
-
 object TestnetTokenIds extends NetworkTokenIds {
 
   // oracle related tokens

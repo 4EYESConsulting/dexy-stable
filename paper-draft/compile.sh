@@ -13,3 +13,4 @@ rm dexy.log
 rm dexy.bbl
 rm dexy.blg
 rm out.log
+rm dexy.vtc
