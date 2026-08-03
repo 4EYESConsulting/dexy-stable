@@ -44,7 +44,6 @@
 
 \titlerunning{Dexy}
 
-%\addauthor{IFCoLog}{International Federation of Computational Logic}
 \addauthor[kushti@protonmail.ch]
   {Alexander Chepurnoy}
   {Ergo Platform}
@@ -100,7 +99,6 @@ stablecoin price is below the peg. In extreme cases, when bank reserves are depl
 the liquidity pool price is restored by extracting stablecoins from it, these will be injected back again at a future time, 
 when the stablecoin price is above the peg by a certain threshold. 
 
-%TODO: Fix this paragraph after finishing all sections of the paper.
 The rest of the paper is organized as follows. In section \ref{sec:design}, the \dx{} design in general is explained, while 
 section $\ref{sec:protocol}$ defines the protocol specification in detail.
 In section \ref{sec:theorems} we consider different theorems related to the stability and design of the protocol.
@@ -115,8 +113,6 @@ The peg price used by the bank is provided by an oracle, which is assumed to be 
 Users can interact with both the bank and the liqudity pool, but certain rules and restrictions are applied to control 
 the price stability. Central bank interventions are determined by the ratio of the liquidity pool price to the oracle price, $\rr$, 
 which we also call the reference reserve ratio. 
-
-%TODO: Insert fig from workshop presentation.
 
 \subsection{The Liquidity Pool}
 \label{subsec:pool}
@@ -134,8 +130,6 @@ minus a redemption fee used to disincentivize frequent withdrawals.
 Liquidity provider withdrawals are halted entirely whenever the pool price is 
 below the oracle price by a certain threshold.
 
-%TODO: Insert fig from workshop presentation.
-
 \subsection{The Algorithmic Central Bank}
 \label{subscec:bank}
 
@@ -143,10 +137,6 @@ By depositing basecoins into the bank, users can mint stablecoins.
 The price provided by the bank will always equal the oracle price. 
 A fee is charged so the bank reserves can increase faster, along with a fee for the oracle usage.
 Under certain conditions, the bank can intervene into the liquidity pool to control its price relative to the oracle price.
-
-%TODO: Insert fig from workshop presentation.
-
-%TODO: List protocol actions and who triggers them.
 
 \subsection{Trust Assumptions}
 \label{subsec:kya}
@@ -256,30 +246,6 @@ We now describe the \dx{} protocol specification, which includes immutable proto
 We note the distinction between an action period, which measures how long before a bank intervention can happen, 
 and a corresponding action bank delay, which measures how long before the start of the first bank action period. 
 For a particular bank action, there may be multiple periods before a new delay is required.
-
-% \begin{itemize}
-%   \item{} $T$ - period before intervention starts. After one intervention, the bank can start another one only after $T$ time units has passed. 
-%   \item{} $p$ - basecoin price reported by the oracle at the moment (e.g. 20 USD per ERG, note, however, that the price provided by the oracle will usually be in units of $\frac{\mathrm{basecoin}}{\mathrm{stablecoin}}$, representing the price of the stablecoin in units of basecoins).
-%   \item{} $s$ - price when the bank should intervene in case of a sudden basecoin price crash. For example, we can assume that $s = \frac{p}{4}$ (so if p is 20 USD per ERG, then $s$ is 5 USD per ERG, means the bank needs to have enough reserves to save the markets when the price is suddenly crashing from 20 to 5 USD per ERG).
-%   \item{} $R$ - ratio between $p$ and $s$, $R = \frac{p}{s}$.
-%   \item{} $r$ - ratio between $p$, and price in the pool, which is $\frac{u}{e}$, thus $r = \frac{p}{\frac{u}{e}} = \frac{p*e}{u}$.
-%   \item{} $e$ - amount of basecoin in the liquidity pool. 
-%   \item{} $u$ - amount of \stc{} in the liquidity pool.
-%   \item{} $O$ - amount of \stc{} in circulation that is outside the liquidity pool. The amount $O$ is not known for the \dx{} protocol, but the bank can easily store how many \stc{} tokens were minted and then get $O$ by deducting $u$ from it.
-%   \item{} $E$ - amount of basecoins in the bank. 
-% \end{itemize}
-
-% Let A be the set of protocol actions such that:
-
-% $$A = \left\{ \textrm{ARB}, \textrm{FREE}, \textrm{IB}, \textrm{ED}, \textrm{RD} \right\}$$
-
-% \begin{itemize}
-%   \item ARB is the arbitrage-mint action.
-%   \item FREE is the free-mint action.
-%   \item IB is the inject-basecoins action.
-%   \item ED is the extract-dexy action.
-%   \item RD is the release-dexy action.
-% \end{itemize}
 
 The central bank parameters are a tuple $C_{\textrm{BANK}}$ of:
 $$\left( \phi_{\textrm{BANK}}^{\textrm{FREE}}, \phi_{\textrm{BANK}}^{\textrm{ARB}}, \epsilon_{\textrm{FREE}}, \epsilon_{\textrm{IB}}, \epsilon_{\textrm{ED}}^{0}, \epsilon_{\textrm{ED}}^{1}, \epsilon_{\textrm{RD}}, T_{\textrm{FREE}}, T_{\textrm{ARB}}, T_{\textrm{IB}}, T_{\textrm{BURN}}, \tau_{\textrm{IB}}, \tau_{\textrm{ED}}, \tau_{\textrm{RD}}, \tau_{\textrm{TX}}, \alpha_{\textrm{FREE}}, \alpha_{\textrm{IB}}  \right)$$
@@ -486,26 +452,6 @@ The bank requires knowing at what time the $\rr > 1 + \epsilonfree$ for the arbi
 or when $\rr < 1 + \epsilonfree$ to determine the end of the arbitrage minting period. 
 Algorithm \ref{alg:update-arbmint} checks that the desired update values provided are valid for either case so the state 
 can be updated correctly.
-
-% \begin{equation}
-% \operatorname{UpdateArbitrageMint}(\Pdt,\slp,\sarb, t, t'):
-% \begin{cases}
-%   (\tilde{t}, d, \tau) \leftarrow \sarb \\
-%   \rr \leftarrow \rr(\Pdt, \slp) \\
-%   \textrm{isUpdate} \leftarrow (\rr > 1 + \epsilonfree) \\
-%   \textrm{isReset} \leftarrow (\rr \le 1 + \epsilonfree) \\
-%   if 
-%   % \textrm{notUpdated} \leftarrow (\tau == \infty) \\
-%   % \textrm{isUpdate} \leftarrow (t' \geq t - \tautx) \land (t' \le t) \\
-%   % \textrm{notReset} \leftarrow (\tau < \infty) \\
-%   % \textrm{isReset} \leftarrow (t' == \infty) \\
-%   % \textrm{update} \leftarrow (\rr > 1 + \epsilonfree) \land notUpdated \land isUpdate  \\
-%   \text{if } t \ge T_{\mathrm{dep}}(u) + \Delta_{\mathrm{dep}} \text{ and } L_\ell(u) > 0 \\
-%     \quad L_f(u) \leftarrow L_f(u) + L_\ell(u) \\
-%     \quad L_\ell(u) \leftarrow 0.
-% \end{cases}
-% \label{eq:update-arbmint}
-% \end{equation}
 
 \newpage
 
@@ -996,114 +942,6 @@ So, in the most extreme case, where an inject-basecoin and extract-dexy action o
 to self-stabilize, the cumulative time for the liquidity pool price to recover will be bounded by the sum of the 
 recovery convergence times for each separate action.
 
-
-% Possible failure scenarios for such a design, and how to put restrictions and design rules 
-% for the system to ensure stability of the \stc{} token price, will now be considered. 
-
-% The bank intervenes when there is a sudden drop in the basecoin price provided by the 
-% oracle and enough time has passed for the markets to have stabilize themselves, with no interventions, 
-% but have failed to do so. In our case, the bank is doing interventions based on the stablecoin price in 
-% the liquidity pool in comparison with the oracle price. So, the bank's intervention is about injecting 
-% its basecoin reserves into the pool, thereby decreasing the basecoin price to match the oracle price.  
-
-% Consider an example where the basecoins are \bc{}, and assume that the oracle price crashes 
-% from $p$ to $s$ sharply and stands there, and before the crash there were $e$ of \bc{} and $u$ of \stc{} in 
-% the liquidity pool, with pool's price being $p$. The worst case then is when no liqudity is put into the pool 
-% during the period $T$. With large enough $T$ and large enough $R$, this assumption is not very realistic: 
-% some traders will buy \bc{}s with their \stc{}s anyway, price is usually failing with swings where traders could 
-% mint \stc{}s thus increasing \bc{} bank reserves. However, it would be reasonable to consider worst-case scenario, 
-% then in the real world \dx{} will be even more durable than in theory. 
-
-% In this case, the bank must intervene after $T$ units of time, as the price differs significantly, 
-% and restore the price in the pool, so set it to $s$. We denote amounts of basecoins and \stc{}s in the pool 
-% after the intervention as $e'$ and $u'$, respectively. Then:
-
-% \begin{itemize}
-%   \item{} $e * u = e' * u'$.
-%   \item{} The bank must inject $E_1$ basecoins into the pool, thus after the trade there will be $e' = e + E_1$ basecoins in the pool.
-%   \item{} The new basecoin price in the pool will be $\frac{u'}{e'} = s$, thus $u' = s * (e + E_1)$.
-%   \item{} So, isolating for the amount that must be injected, we obtain $E_1 = \sqrt{\frac{e * u}{s}} - e$ basecoins that must be added into the pool from the bank.
-% \end{itemize}
-
-% So by injecting $E_1$ basecoins, the bank recovers the price. However, this is not enough, as now there are $O$ \stc{} 
-% units which can be injected into the pool from outside. 
-% Again, it is not realistic to assume that all the $O$ \stc{} would be injected, as some of them are simply lost, 
-% some would be kept to buy cheap basecoins at the bottom~(\stc{}s are often used as a bet for a basecoin price decline). 
-% However, we need to assume the worst-case scenario again. We also unrealistically assume that all the $O$ tokens are being
-%  sold in very small batches that do not significantly affecting the pool price, where after each batch, a seller of a new 
-%  batch is waiting for a bank intervention to happen (so for $T$ units of time), and sells only after the intervention. 
-%  In this case, all the $O$ tokens are being sold at price close to $s$, so the bank should have about $E_2 = \frac{O}{s}$ 
-%  basecoins in reserve to buy the tokens back.
-
-% Summing $E_1$ and $E_2$, we obtain the basecoin reserves the bank should have to be ready for the 
-% worst-case scenario: $E_w = E_1 + E_2 = \sqrt{\frac{e * u}{s}} - e + \frac{O}{s}$.
-
-% This scenario is the worst-case for the bank~(and only the bank) because it is buying all of the 
-% external $O$ $\stc{}$ at the worst possible price $s$, and also sets the new price by burning its own reserves only.  
-
-% \section{Bank and Pool Rules}
-% \label{sec:rules}
-
-% Based on needed reserves for worst-case scenario estimation, we can consider minting rules accordingly. Similarly to SigUSD \cite{SigUSD} (a Djed instantiation on the Ergo blockchain), we can, for example, target for security in case of a
-% 4x price drop, so to consider $R = \frac{p}{s} = 4$. 
-% We can also allow minting of \stc{}s~while there are enough, so not less than $E_w$, basecoins in reserves. However, in this case, the \stc{} would be non-mintable most of the time, and only during moments of basecoin price going up significantly will it be possible to mint \dx{}. As worst-case scenario is based on unrealistic assumptions, unlikely a realistic protocol can be built on top of it.  
-
-% Thus, we leave worst-case scenario for UI, so dapps implemented to interact with the \dx{} protocol may show, for example, collateralization for the worst-case scenario. Having on-chain data analysis, more precise estimations of reserve quality can be made~(by considering \stc{}s locked in DeFi protocols or stablecoins likely forgotten in wallets).
-
-% Instead, we always allow for cautious minting. That is, we allow minting when oracle price is above pool's price~(so the bank provides liquidity for arbitrage when the \stc{} price is above the peg), or we allow to mint a little bit (per some time period) when liquidity pool is in good shape. In details, we have two following minting operations, with minting price being the oracle's price $p$:  
-
-% \begin{itemize}
-%   \item {Arbitrage mint:} if price reported by the oracle is higher than in the pool, i.e. $p > \frac{u}{e}$, we allow to print enough \stc{} tokens to bring the price to $p$. That is, the bank allows to mint up to $\delta_u = \sqrt{p*e*u}-u$ \stc{} by accepting up to $\delta_e = \frac{\delta_u}{p}$ basecoins into reserves. 
-  
-%     \emph{To instantiate the rule, we can allow for arbitrage minting if the price $p$ is more than $\frac{u}{e}$ by at least $1\%$ for time period $T_{arb}$ (e.g. 1 hour), with the bank charging $0.5\%$ fee for the operation. After arbitrage mint, it is not possible to do another one within 30 minutes, in order to prevent aggressive liquidity minting via chained transactions.}
-
-%   \item {Free mint:} we allow to mint up to $\frac{u}{100}$ \stc{}s within time period $T_{free}$. 
-
-%     \emph{To instantiate the rule, we propose to allow for free mint if $0.98 < r < 1.02$. Minting fee in this case is also $0.5\%$. We propose to set $T_{free}$ to $12$ hours, then bank reserves can grow by $2\%$ of LP volume per day when the peg is okay.}
-% \end{itemize}
-
-% In addition to minting actions, which increase the bank reserves, we define the following action which decreases the bank reserves, but functions as the first stabilization mechanism: 
-
-% \begin{itemize}
-%    \item{Intervention:} if the price reported by the oracle is lower than the pool price by a significant enough margin, i.e. $r = \frac{p*e}{u}$ is less than or equal to some constant that is set as a protocol parameter, then the bank will provide enough basecoins to restore the pool price to the oracle price.
-   
-%    \emph{To instantiate the rule, we propose to allow the bank to intervene if $r \le 0.98$ for time period $T_{int} = 1 {\ day}$.
-%        During the intervention, the period is reset, so another intervention will only occur after $T_{int} = 1 {\ day}$ at least. The bank will provide enough basecoins to get the pool price
-%        price to 99.5\% of the oracle price max, but making sure to not spend more than 1\% of its reserves for that.}
-% \end{itemize}
-
-% We also state following rules for the liquidity pool (which, otherwise, acts as an ordinary CP-AMM liquidity pool): 
-
-% \begin{itemize}
-%    \item{Stopping withdrawals:} if $r$ is below some threshold, withdrawals from liquidity providers are stopped (i.e. liquidity providers cannot redeem their LP tokens for basecoins/stablecoins), so only swaps between basecoins and stablecoins are possible.  
-   
-%    \emph{To instantiate the rule, we propose to stop withdrawals immediately if $r \le 0.98$.}
-
-%    \item{Second stabilization mechanism:} what if the bank is out of reserves, but the basecoin price in the liquidity pool is still above the oracle basecoin price? In this case we restore price in the pool by removing liquidity, and there are two possible options here:
-
-%    \begin{enumerate}
-%    \item{Burn:} if the bank if empty, and $r$ is below some threshold, it is allowed to burn \stc{}s in the pool. 
-   
-%    \emph{To instantiate the rule, we propose to burn \stc{} if $r \le 0.95$ for a time period $T_{burn}$. $T_{burn}$ must be quite big, e.g. $1 {\ week}$. We burn enough stablecoins to return to the state of stopped withdrawals, so to $r = 0.98$. After burning, the period is reset, so another burn will be done only after $T_{burn}$ amount of time at least.}
-
-%    \item{Extract for the future:} if the bank is empty and $r$ is below some threshold, it is allowed to extract \stc{}s from the pool and lock them in a contract, only to be released in the future when the \stc{} price is above the stablecoin oracle price (i.e. the inverse of the basecoin price peg).
-   
-%    \emph{To instantiate the rule, we propose to extract \stc{}s if $r \le 0.95$ for time period $T_{burn}$ (so the same as in burn). 
-%    To prioritize extracted funds over arbitrage mint, we do not have delay in releasing contract. We burn enough to return to the state of stopped withdrawals, so close to $r = 0.98$~(exactly, $0.97 \le r \le 0.98$). After extraction, the period is reset, so another extraction will be done after $T_{burn}$ amount of time at least.}
-%    \end{enumerate}
-% \end{itemize} 
-
-% In addition, we introduce a large enough redemption fee for liquidity providers to avoid excessive liquidity hopping, e.g. $2\%$.
-
-% \section{Stability}
-% \label{sec:stability}
-
-% With second stabilization mechanism~(burning or extraction) in place, the price in the reference market will eventually stabilize. However, for liquidity holders, burning is painful, extraction not as much, but still not desirable. Thus, the \dx{} protocol is trying to avoid it (unlike other protocols, such as Gyroscope or Fei, where redemption rate fails and falls below $1$ immediately when the collateralization ratio falls under $100\%$) by giving markets time to self-stabilize, and then doing interventions. However, this could mean slower stabilization, in comparison with other protocols, but slower stabilization helps the bank to play with possible adversaries in an environment with information assymetry, since humans always have access to more information than the algorithmic bank, and with more flexible decision making as well.
-
-% \dx{} is also cautious about minting new \stc{}s, which could mean slow growth of the number of stablecoins issued. This could be inconvenient, especially for big players, but the protocol is focused on stability in the first place. 
-
-% Please note that the liquidity pool is disincentivizing massive bank runs due to its constant-product nature. Actually, massive bank runs are simpler for the bank to resolve, in comparison to the slow drain of the worst-case scenario.
-
 \section{Related Works}
 \label{sec:related-works}
 We first consider the distinction between crypto-backed stablecoins and crypto-collateralized stablecoins.
@@ -1114,7 +952,6 @@ In crypto-backed protocols, any stablecoin holder always has the right-of-redemp
 their stablecoins for a corresponding portion of the crypto reserves. Equivalently, some fraction of the reserves 
 fully backs the stablecoins according to the protocol's reserve ratio.
 
-% Talk about difference with Gluon/Djed design
 Both the Djed \cite{DjedEprint} and Gluon \cite{Gluon} protocols are considered as crypto-backed algorithmic stablecoins.
 This is because the entire bank reserve is tokenized via two tokens: stablecoins and reservecoins.
 Stablecoins represent the liabilities of the bank, while reservecoins represent the reserve surplus, 
@@ -1173,10 +1010,6 @@ These basecoins are sent to a BuyBack contract, which purchases the correspondin
 The purchased ORT tokens are then distributed to the oracle operators. Thus, the oracle operators receive ORT tokens that they 
 can then redeem for the accumulated basecoin fees in the same DEX liquidity pool.
 
-% $X$ oracles wil get up to $2 \cdot X$ GORTs per epoch (one datapoint update), per Oracle Pool v2 design~\cite{eip23}~(
-% $2 \cdot X$ if all the oracles are active). We consider $X = 30$ oracles with one hour long epoch, which means up to $60$
-% GORTs will be released to oracles.
-
 \subsection{Governance}
 \label{subsec:governance}
 
@@ -1195,16 +1028,8 @@ specification outlined in Section \ref{sec:protocol} is modeled after this imple
 The ORT token for the Gold oracle pool is called GORT. The pool reports the price for 1 kilogram of Gold, however, 
 the stablecoin protocol implementation uses 1 milligram of Gold internally as the peg.
 
-% The BuyBack contract purchases GORT available in a LP on ErgoDex, which is then distributed to the oracle operators.
-% Thus, the oracle operators receiving GORT tokens can redeem them for the accumulated \bc{} from fees in the same LP.
-
-% In addition to oracles, GORT is used to reward developers. To do that, we consider a flat emission contract, which is
-% releasing the same amount per one hour, so 2 GORT per block during initial period (2 years).
-
 A UI for interacting with the \dxg{} protocol is available at \url{https://cruxfinance.io/dexy/mint}, 
 when selecting the DexyGold option.
-
-%TODO: Fix up oracle stuff since it applies to USE + check how DORT
 
 \subsection{\dxusd}
 \label{subsec:dexyusd}
@@ -1220,9 +1045,6 @@ the basecoin liquidity in the liquidity pool.
 A UI for viewing stats of the \dxusd{} protocol is available at \url{https://cruxfinance.io/dexy/analytics}, 
 while interacting with the algorithmic central bank can be done at \url{https://cruxfinance.io/dexy/mint}, 
 when selecting the USE option.
-
-%TODO: talk about changes to intervention based on fraction of lp instead of bank reserves + consequence/why.
-%TODO: add links to crux finance + mew finance + other UIs???
 
 \subsection{Smartcontracts}
 \label{subsec:smartcontracts}
